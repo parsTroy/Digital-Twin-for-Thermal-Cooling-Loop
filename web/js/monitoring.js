@@ -214,9 +214,26 @@ class MonitoringManager {
     }
     
     updateMonitoring() {
-        if (!window.thermalApp || !window.thermalApp.simulation) return;
+        // Get data from demo mode if available, otherwise use simulated data
+        let state;
+        if (window.demoMode && window.demoMode.isRunning) {
+            // Get current state from demo mode
+            state = {
+                time: window.demoMode.timeStep,
+                T_hot: window.demoMode.baseTempHot + (Math.random() - 0.5) * 2,
+                T_cold: window.demoMode.baseTempCold + (Math.random() - 0.5) * 2,
+                m_dot: window.demoMode.baseMassFlow + (Math.random() - 0.5) * 0.01
+            };
+        } else {
+            // Generate simulated data for demonstration
+            state = {
+                time: Date.now() / 1000,
+                T_hot: 320 + Math.sin(Date.now() / 10000) * 10 + (Math.random() - 0.5) * 5,
+                T_cold: 300 + Math.sin(Date.now() / 8000) * 8 + (Math.random() - 0.5) * 3,
+                m_dot: 0.1 + Math.sin(Date.now() / 12000) * 0.02 + (Math.random() - 0.5) * 0.01
+            };
+        }
         
-        const state = window.thermalApp.simulation.getCurrentState();
         this.updateStatusDisplay(state);
         this.updateCharts(state);
         this.performAnomalyDetection(state);

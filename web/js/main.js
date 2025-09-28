@@ -29,6 +29,12 @@ class ThermalCoolingApp {
         this.initializeCharts();
         this.updateParameterDisplays();
         
+        // Initialize monitoring manager
+        this.initializeMonitoring();
+        
+        // Initialize all tab managers
+        this.initializeAllTabs();
+        
         // Check if we're on GitHub Pages and initialize demo mode immediately
         const isGitHubPages = window.location.hostname.includes('github.io') || 
                              window.location.hostname.includes('github.com') ||
@@ -42,6 +48,29 @@ class ThermalCoolingApp {
         }
         
         console.log('Thermal Cooling Loop Digital Twin initialized');
+    }
+    
+    initializeMonitoring() {
+        if (!window.monitoringManager) {
+            window.monitoringManager = new MonitoringManager();
+            window.monitoringManager.initialize();
+        }
+    }
+    
+    initializeAllTabs() {
+        // Initialize all tab managers
+        if (typeof initializeMLDetectionTab === 'function') {
+            initializeMLDetectionTab();
+        }
+        
+        if (typeof initializeAnalysisTab === 'function') {
+            initializeAnalysisTab();
+        }
+        
+        if (!window.testingManager) {
+            window.testingManager = new TestingManager();
+            window.testingManager.initialize();
+        }
     }
     
     // Backend connection functions
