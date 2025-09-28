@@ -29,14 +29,40 @@ class MonitoringManager {
         
         this.setupEventListeners();
         this.initializeCharts();
-        this.startMonitoring();
+        this.updateMonitoringButtons(); // Set initial button states
         
         this.isInitialized = true;
         console.log('Monitoring manager initialized');
     }
     
     setupEventListeners() {
-        // Add any monitoring-specific event listeners here
+        // Start monitoring button
+        const startBtn = document.getElementById('startMonitoring');
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                this.startMonitoring();
+                this.updateMonitoringButtons();
+            });
+        }
+        
+        // Stop monitoring button
+        const stopBtn = document.getElementById('stopMonitoring');
+        if (stopBtn) {
+            stopBtn.addEventListener('click', () => {
+                this.stopMonitoring();
+                this.updateMonitoringButtons();
+            });
+        }
+        
+        // Update rate slider
+        const rateSlider = document.getElementById('monitoringRate');
+        if (rateSlider) {
+            rateSlider.addEventListener('input', (e) => {
+                const rate = parseFloat(e.target.value);
+                this.setUpdateRate(rate);
+                this.updateRateDisplay(rate);
+            });
+        }
     }
     
     initializeCharts() {
@@ -207,6 +233,10 @@ class MonitoringManager {
     }
     
     startMonitoring() {
+        if (this.monitoringInterval) {
+            return; // Already running
+        }
+        
         // Start monitoring loop
         this.monitoringInterval = setInterval(() => {
             this.updateMonitoring();
@@ -555,5 +585,37 @@ class MonitoringManager {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
+    }
+    
+    updateMonitoringButtons() {
+        const startBtn = document.getElementById('startMonitoring');
+        const stopBtn = document.getElementById('stopMonitoring');
+        
+        if (this.monitoringInterval) {
+            // Monitoring is running
+            if (startBtn) startBtn.disabled = true;
+            if (stopBtn) stopBtn.disabled = false;
+        } else {
+            // Monitoring is stopped
+            if (startBtn) startBtn.disabled = false;
+            if (stopBtn) stopBtn.disabled = true;
+        }
+    }
+    
+    setUpdateRate(rate) {
+        if (this.monitoringInterval) {
+            // Restart with new rate
+            this.stopMonitoring();
+            this.monitoringInterval = setInterval(() => {
+                this.updateMonitoring();
+            }, 1000 / rate);
+        }
+    }
+    
+    updateRateDisplay(rate) {
+        const rateDisplay = document.getElementById('monitoringRateValue');
+        if (rateDisplay) {
+            rateDisplay.textContent = `${rate} Hz`;
+        }
     }
 }
