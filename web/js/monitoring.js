@@ -250,13 +250,21 @@ class MonitoringManager {
     }
     
     updateStatusDisplay(state) {
-        // Update status values
-        document.getElementById('hot-temp-value').textContent = 
-            `${state.T_hot.toFixed(1)} K`;
-        document.getElementById('cold-temp-value').textContent = 
-            `${state.T_cold.toFixed(1)} K`;
-        document.getElementById('flow-value').textContent = 
-            `${state.m_dot.toFixed(3)} kg/s`;
+        // Update status values with null checks
+        const hotTempElement = document.getElementById('hot-temp-value');
+        if (hotTempElement) {
+            hotTempElement.textContent = `${state.T_hot.toFixed(1)} K`;
+        }
+        
+        const coldTempElement = document.getElementById('cold-temp-value');
+        if (coldTempElement) {
+            coldTempElement.textContent = `${state.T_cold.toFixed(1)} K`;
+        }
+        
+        const flowElement = document.getElementById('flow-value');
+        if (flowElement) {
+            flowElement.textContent = `${state.m_dot.toFixed(3)} kg/s`;
+        }
         
         // Update trends (simplified)
         this.updateTrends(state);
@@ -269,9 +277,20 @@ class MonitoringManager {
         // Simple trend calculation (could be more sophisticated)
         const trends = this.calculateTrends(state);
         
-        document.getElementById('hot-temp-trend').textContent = trends.T_hot;
-        document.getElementById('cold-temp-trend').textContent = trends.T_cold;
-        document.getElementById('flow-trend').textContent = trends.m_dot;
+        const hotTempTrendElement = document.getElementById('hot-temp-trend');
+        if (hotTempTrendElement) {
+            hotTempTrendElement.textContent = trends.T_hot;
+        }
+        
+        const coldTempTrendElement = document.getElementById('cold-temp-trend');
+        if (coldTempTrendElement) {
+            coldTempTrendElement.textContent = trends.T_cold;
+        }
+        
+        const flowTrendElement = document.getElementById('flow-trend');
+        if (flowTrendElement) {
+            flowTrendElement.textContent = trends.m_dot;
+        }
     }
     
     calculateTrends(state) {
@@ -294,9 +313,15 @@ class MonitoringManager {
     updateSystemStatus(state) {
         const status = this.determineSystemStatus(state);
         
-        document.getElementById('system-status').textContent = status.text;
+        const systemStatusElement = document.getElementById('system-status');
+        if (systemStatusElement) {
+            systemStatusElement.textContent = status.text;
+        }
+        
         const indicator = document.getElementById('status-indicator');
-        indicator.className = `status-indicator ${status.type}`;
+        if (indicator) {
+            indicator.className = `status-indicator ${status.type}`;
+        }
     }
     
     determineSystemStatus(state) {

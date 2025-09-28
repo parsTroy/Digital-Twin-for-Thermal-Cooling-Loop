@@ -293,10 +293,13 @@ class ThermalCoolingApp {
     }
     
     setupEventListeners() {
-        // Navigation
-        document.querySelectorAll('.nav-btn').forEach(btn => {
+        // Tab navigation
+        document.querySelectorAll('.tab-button').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                this.switchTab(e.target.dataset.tab);
+                const tabName = e.target.dataset.tab;
+                if (tabName) {
+                    this.switchTab(tabName);
+                }
             });
         });
         
@@ -370,7 +373,7 @@ class ThermalCoolingApp {
         tabButtons.forEach(btn => {
             btn.classList.remove('active');
         });
-        const activeBtn = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+        const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
         console.log('Active button found:', activeBtn);
         if (activeBtn) {
             activeBtn.classList.add('active');
