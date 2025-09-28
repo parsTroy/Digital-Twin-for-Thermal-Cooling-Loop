@@ -45,7 +45,12 @@ class MonitoringManager {
     }
     
     createMonitoringChart() {
-        const ctx = document.getElementById('monitoring-chart').getContext('2d');
+        const chartElement = document.getElementById('monitoring-chart');
+        if (!chartElement) {
+            console.warn('Monitoring chart element not found, skipping chart creation');
+            return;
+        }
+        const ctx = chartElement.getContext('2d');
         this.monitoringChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -126,7 +131,12 @@ class MonitoringManager {
     }
     
     createResidualChart() {
-        const ctx = document.getElementById('residual-chart').getContext('2d');
+        const chartElement = document.getElementById('residual-chart');
+        if (!chartElement) {
+            console.warn('Residual chart element not found, skipping chart creation');
+            return;
+        }
+        const ctx = chartElement.getContext('2d');
         this.residualChart = new Chart(ctx, {
             type: 'line',
             data: {

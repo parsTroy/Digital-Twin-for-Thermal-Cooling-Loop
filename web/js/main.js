@@ -362,20 +362,28 @@ class ThermalCoolingApp {
     }
     
     switchTab(tabName) {
+        console.log('Switching to tab:', tabName);
+        
         // Update navigation
-        document.querySelectorAll('.tab-button').forEach(btn => {
+        const tabButtons = document.querySelectorAll('.tab-button');
+        console.log('Found tab buttons:', tabButtons.length);
+        tabButtons.forEach(btn => {
             btn.classList.remove('active');
         });
         const activeBtn = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+        console.log('Active button found:', activeBtn);
         if (activeBtn) {
             activeBtn.classList.add('active');
         }
         
         // Update content
-        document.querySelectorAll('.tab-content').forEach(content => {
+        const tabContents = document.querySelectorAll('.tab-content');
+        console.log('Found tab contents:', tabContents.length);
+        tabContents.forEach(content => {
             content.classList.remove('active');
         });
         const activeContent = document.getElementById(tabName);
+        console.log('Active content found:', activeContent);
         if (activeContent) {
             activeContent.classList.add('active');
         }
@@ -912,8 +920,11 @@ class ThermalCoolingApp {
 
 // Global function for tab switching (called from HTML)
 function showTab(tabName) {
+    console.log('Switching to tab:', tabName);
     if (window.thermalApp) {
         window.thermalApp.switchTab(tabName);
+    } else {
+        console.error('Thermal app not initialized');
     }
 }
 
