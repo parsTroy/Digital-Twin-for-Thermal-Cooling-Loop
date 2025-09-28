@@ -34,6 +34,14 @@ class ThermalCoolingApp {
     
     // Backend connection functions
     async connectToBackend() {
+        // For GitHub Pages deployment, always use demo mode
+        if (window.location.hostname === 'parstroy.github.io' || window.location.hostname.includes('github.io')) {
+            console.log('GitHub Pages detected - using demo mode');
+            this.updateConnectionStatus(false, 'Demo Mode');
+            this.initializeDemoMode();
+            return;
+        }
+        
         try {
             // Test HTTP connection
             const response = await fetch(`${BACKEND_URL}/api/status`);
@@ -49,9 +57,18 @@ class ThermalCoolingApp {
             
         } catch (error) {
             console.error('Failed to connect to backend:', error);
-            this.updateConnectionStatus(false);
-            this.showNotification('Backend connection failed. Please start the backend server.', 'error');
+            this.updateConnectionStatus(false, 'Demo Mode');
+            this.showNotification('Backend unavailable - using demo mode', 'info');
+            this.initializeDemoMode();
         }
+    }
+    
+    initializeDemoMode() {
+        // Initialize demo mode immediately
+        if (!window.demoMode) {
+            window.demoMode = new DemoMode();
+        }
+        console.log('Demo mode initialized');
     }
 
     connectWebSocket() {
@@ -393,9 +410,15 @@ class ThermalCoolingApp {
     async startSimulation() {
         if (this.isSimulationRunning) return;
         
-        // Check if we're in demo mode (no backend available)
-        if (!isConnected && window.demoMode) {
+        // Always use demo mode for GitHub Pages or when backend is not available
+        if (!isConnected || window.location.hostname.includes('github.io')) {
             console.log('Using demo mode for simulation');
+            
+            // Ensure demo mode is initialized
+            if (!window.demoMode) {
+                this.initializeDemoMode();
+            }
+            
             const result = await window.demoMode.startSimulation(this.getSimulationParameters());
             if (result.status === 'success') {
                 this.isSimulationRunning = true;
@@ -408,7 +431,7 @@ class ThermalCoolingApp {
             return;
         }
         
-        // Try backend connection
+        // Try backend connection only if not on GitHub Pages
         try {
             const params = this.getSimulationParameters();
             const result = await this.apiStartSimulation(params);
@@ -428,16 +451,18 @@ class ThermalCoolingApp {
             this.showNotification('Backend unavailable, using demo mode', 'warning');
             
             // Fallback to demo mode
-            if (window.demoMode) {
-                const result = await window.demoMode.startSimulation(this.getSimulationParameters());
-                if (result.status === 'success') {
-                    this.isSimulationRunning = true;
-                    const startBtn = document.getElementById('start-simulation');
-                    const stopBtn = document.getElementById('stop-simulation');
-                    if (startBtn) startBtn.disabled = true;
-                    if (stopBtn) stopBtn.disabled = false;
-                    this.showNotification('Demo simulation started', 'success');
-                }
+            if (!window.demoMode) {
+                this.initializeDemoMode();
+            }
+            
+            const result = await window.demoMode.startSimulation(this.getSimulationParameters());
+            if (result.status === 'success') {
+                this.isSimulationRunning = true;
+                const startBtn = document.getElementById('start-simulation');
+                const stopBtn = document.getElementById('stop-simulation');
+                if (startBtn) startBtn.disabled = true;
+                if (stopBtn) stopBtn.disabled = false;
+                this.showNotification('Demo simulation started', 'success');
             }
         }
     }
@@ -445,17 +470,20 @@ class ThermalCoolingApp {
     async stopSimulation() {
         if (!this.isSimulationRunning) return;
         
-        // Check if we're in demo mode
-        if (!isConnected && window.demoMode) {
+        // Always use demo mode for GitHub Pages or when backend is not available
+        if (!isConnected || window.location.hostname.includes('github.io')) {
             console.log('Stopping demo simulation');
-            const result = await window.demoMode.stopSimulation();
-            if (result.status === 'success') {
-                this.isSimulationRunning = false;
-                const startBtn = document.getElementById('start-simulation');
-                const stopBtn = document.getElementById('stop-simulation');
-                if (startBtn) startBtn.disabled = false;
-                if (stopBtn) stopBtn.disabled = true;
-                this.showNotification('Demo simulation stopped', 'info');
+            
+            if (window.demoMode) {
+                const result = await window.demoMode.stopSimulation();
+                if (result.status === 'success') {
+                    this.isSimulationRunning = false;
+                    const startBtn = document.getElementById('start-simulation');
+                    const stopBtn = document.getElementById('stop-simulation');
+                    if (startBtn) startBtn.disabled = false;
+                    if (stopBtn) stopBtn.disabled = true;
+                    this.showNotification('Demo simulation stopped', 'info');
+                }
             }
             return;
         }

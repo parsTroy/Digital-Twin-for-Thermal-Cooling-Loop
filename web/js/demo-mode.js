@@ -345,14 +345,42 @@ class DemoMode {
     // API simulation methods
     async startSimulation(params) {
         console.log('Demo: Starting simulation with params:', params);
-        this.startSimulation();
+        this.startSimulationInternal();
         return { status: 'success', message: 'Demo simulation started' };
     }
     
     async stopSimulation() {
         console.log('Demo: Stopping simulation');
-        this.stopSimulation();
+        this.stopSimulationInternal();
         return { status: 'success', message: 'Demo simulation stopped' };
+    }
+    
+    startSimulationInternal() {
+        if (this.isRunning) return;
+        
+        this.isRunning = true;
+        this.timeStep = 0;
+        this.simulationData = [];
+        
+        // Start simulation loop
+        this.intervalId = setInterval(() => {
+            this.simulateStep();
+        }, 1000); // Update every second
+        
+        console.log('Demo simulation started internally');
+    }
+    
+    stopSimulationInternal() {
+        if (!this.isRunning) return;
+        
+        this.isRunning = false;
+        
+        if (this.intervalId) {
+            clearInterval(this.intervalId);
+            this.intervalId = null;
+        }
+        
+        console.log('Demo simulation stopped internally');
     }
     
     async injectFault(faultData) {
@@ -405,21 +433,4 @@ class DemoMode {
     }
 }
 
-// Initialize demo mode when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    // Check if we're in demo mode (no backend connection)
-    setTimeout(() => {
-        const statusElement = document.getElementById('connection-status');
-        if (statusElement && statusElement.textContent === 'Disconnected') {
-            console.log('Backend not available, enabling demo mode');
-            window.demoMode = new DemoMode();
-            
-            // Override the main app methods with demo versions
-            if (window.thermalApp) {
-                window.thermalApp.startSimulation = window.demoMode.startSimulation.bind(window.demoMode);
-                window.thermalApp.stopSimulation = window.demoMode.stopSimulation.bind(window.demoMode);
-                window.thermalApp.apiInjectFault = window.demoMode.injectFault.bind(window.demoMode);
-            }
-        }
-    }, 2000); // Wait 2 seconds for backend connection attempt
-});
+// Demo mode will be initialized by the main app when needed
