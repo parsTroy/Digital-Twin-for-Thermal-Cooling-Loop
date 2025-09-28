@@ -266,14 +266,6 @@ python -m pytest tests/test_enhanced_detector.py -v
 python -m pytest tests/ --cov=twin --cov-report=html
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
@@ -303,8 +295,7 @@ If you use this project in your research, please cite:
 
 For questions, issues, or contributions:
 - Open an issue on GitHub
-- Contact: [your-email@domain.com]
-- Documentation: [project-docs-url]
+- Contact: [devtroyparsons@proton.me]
 
 ---
 
