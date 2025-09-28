@@ -28,7 +28,20 @@ class ThermalCoolingApp {
         this.setupEventListeners();
         this.initializeCharts();
         this.updateParameterDisplays();
-        this.connectToBackend();
+        
+        // Check if we're on GitHub Pages and initialize demo mode immediately
+        const isGitHubPages = window.location.hostname.includes('github.io') || 
+                             window.location.hostname.includes('github.com') ||
+                             window.location.hostname === 'parstroy.github.io';
+        
+        if (isGitHubPages) {
+            console.log('GitHub Pages detected - initializing demo mode immediately');
+            this.initializeDemoMode();
+            this.updateConnectionStatus(false, 'Demo Mode');
+        } else {
+            this.connectToBackend();
+        }
+        
         console.log('Thermal Cooling Loop Digital Twin initialized');
     }
     
@@ -410,8 +423,13 @@ class ThermalCoolingApp {
     async startSimulation() {
         if (this.isSimulationRunning) return;
         
+        // Check if we're on GitHub Pages or if demo mode should be used
+        const isGitHubPages = window.location.hostname.includes('github.io') || 
+                             window.location.hostname.includes('github.com') ||
+                             window.location.hostname === 'parstroy.github.io';
+        
         // Always use demo mode for GitHub Pages or when backend is not available
-        if (!isConnected || window.location.hostname.includes('github.io')) {
+        if (isGitHubPages || !isConnected || !window.demoMode) {
             console.log('Using demo mode for simulation');
             
             // Ensure demo mode is initialized
@@ -419,19 +437,24 @@ class ThermalCoolingApp {
                 this.initializeDemoMode();
             }
             
-            const result = await window.demoMode.startSimulation(this.getSimulationParameters());
-            if (result.status === 'success') {
-                this.isSimulationRunning = true;
-                const startBtn = document.getElementById('start-simulation');
-                const stopBtn = document.getElementById('stop-simulation');
-                if (startBtn) startBtn.disabled = true;
-                if (stopBtn) stopBtn.disabled = false;
-                this.showNotification('Demo simulation started', 'success');
+            try {
+                const result = await window.demoMode.startSimulation(this.getSimulationParameters());
+                if (result.status === 'success') {
+                    this.isSimulationRunning = true;
+                    const startBtn = document.getElementById('start-simulation');
+                    const stopBtn = document.getElementById('stop-simulation');
+                    if (startBtn) startBtn.disabled = true;
+                    if (stopBtn) stopBtn.disabled = false;
+                    this.showNotification('Demo simulation started', 'success');
+                }
+            } catch (error) {
+                console.error('Error starting demo simulation:', error);
+                this.showNotification('Failed to start demo simulation', 'error');
             }
             return;
         }
         
-        // Try backend connection only if not on GitHub Pages
+        // Try backend connection only if not on GitHub Pages and backend is available
         try {
             const params = this.getSimulationParameters();
             const result = await this.apiStartSimulation(params);
@@ -455,14 +478,19 @@ class ThermalCoolingApp {
                 this.initializeDemoMode();
             }
             
-            const result = await window.demoMode.startSimulation(this.getSimulationParameters());
-            if (result.status === 'success') {
-                this.isSimulationRunning = true;
-                const startBtn = document.getElementById('start-simulation');
-                const stopBtn = document.getElementById('stop-simulation');
-                if (startBtn) startBtn.disabled = true;
-                if (stopBtn) stopBtn.disabled = false;
-                this.showNotification('Demo simulation started', 'success');
+            try {
+                const result = await window.demoMode.startSimulation(this.getSimulationParameters());
+                if (result.status === 'success') {
+                    this.isSimulationRunning = true;
+                    const startBtn = document.getElementById('start-simulation');
+                    const stopBtn = document.getElementById('stop-simulation');
+                    if (startBtn) startBtn.disabled = true;
+                    if (stopBtn) stopBtn.disabled = false;
+                    this.showNotification('Demo simulation started', 'success');
+                }
+            } catch (demoError) {
+                console.error('Error starting demo simulation:', demoError);
+                this.showNotification('Failed to start simulation', 'error');
             }
         }
     }
@@ -470,19 +498,29 @@ class ThermalCoolingApp {
     async stopSimulation() {
         if (!this.isSimulationRunning) return;
         
+        // Check if we're on GitHub Pages or if demo mode should be used
+        const isGitHubPages = window.location.hostname.includes('github.io') || 
+                             window.location.hostname.includes('github.com') ||
+                             window.location.hostname === 'parstroy.github.io';
+        
         // Always use demo mode for GitHub Pages or when backend is not available
-        if (!isConnected || window.location.hostname.includes('github.io')) {
+        if (isGitHubPages || !isConnected || !window.demoMode) {
             console.log('Stopping demo simulation');
             
             if (window.demoMode) {
-                const result = await window.demoMode.stopSimulation();
-                if (result.status === 'success') {
-                    this.isSimulationRunning = false;
-                    const startBtn = document.getElementById('start-simulation');
-                    const stopBtn = document.getElementById('stop-simulation');
-                    if (startBtn) startBtn.disabled = false;
-                    if (stopBtn) stopBtn.disabled = true;
-                    this.showNotification('Demo simulation stopped', 'info');
+                try {
+                    const result = await window.demoMode.stopSimulation();
+                    if (result.status === 'success') {
+                        this.isSimulationRunning = false;
+                        const startBtn = document.getElementById('start-simulation');
+                        const stopBtn = document.getElementById('stop-simulation');
+                        if (startBtn) startBtn.disabled = false;
+                        if (stopBtn) stopBtn.disabled = true;
+                        this.showNotification('Demo simulation stopped', 'info');
+                    }
+                } catch (error) {
+                    console.error('Error stopping demo simulation:', error);
+                    this.showNotification('Failed to stop demo simulation', 'error');
                 }
             }
             return;
@@ -507,14 +545,19 @@ class ThermalCoolingApp {
             
             // Fallback to demo mode
             if (window.demoMode) {
-                const result = await window.demoMode.stopSimulation();
-                if (result.status === 'success') {
-                    this.isSimulationRunning = false;
-                    const startBtn = document.getElementById('start-simulation');
-                    const stopBtn = document.getElementById('stop-simulation');
-                    if (startBtn) startBtn.disabled = false;
-                    if (stopBtn) stopBtn.disabled = true;
-                    this.showNotification('Demo simulation stopped', 'info');
+                try {
+                    const result = await window.demoMode.stopSimulation();
+                    if (result.status === 'success') {
+                        this.isSimulationRunning = false;
+                        const startBtn = document.getElementById('start-simulation');
+                        const stopBtn = document.getElementById('stop-simulation');
+                        if (startBtn) startBtn.disabled = false;
+                        if (stopBtn) stopBtn.disabled = true;
+                        this.showNotification('Demo simulation stopped', 'info');
+                    }
+                } catch (demoError) {
+                    console.error('Error stopping demo simulation:', demoError);
+                    this.showNotification('Failed to stop simulation', 'error');
                 }
             }
         }
