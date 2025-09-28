@@ -10,330 +10,491 @@
 </head>
 <body>
     <div class="container">
-        <!-- Header -->
-        <header class="header">
+        <header>
             <h1>Thermal Cooling Loop Digital Twin</h1>
-            <p>Real-time monitoring and anomaly detection for thermal management systems</p>
+            <p>Advanced real-time monitoring and ML-based anomaly detection for thermal management systems</p>
+            <div class="header-controls">
+                <button id="connectBtn" class="btn btn-primary">Connect to Backend</button>
+                <div class="connection-status" id="connectionStatus">Disconnected</div>
+            </div>
         </header>
 
-        <!-- Navigation -->
-        <nav class="nav">
-            <button class="nav-btn active" data-tab="simulation">Simulation</button>
-            <button class="nav-btn" data-tab="monitoring">Monitoring</button>
-            <button class="nav-btn" data-tab="testing">Testing</button>
-            <button class="nav-btn" data-tab="documentation">Documentation</button>
+        <nav class="tabs">
+            <button class="tab-button active" onclick="showTab('simulation')">Simulation</button>
+            <button class="tab-button" onclick="showTab('monitoring')">Real-time Monitoring</button>
+            <button class="tab-button" onclick="showTab('ml-detection')">ML Detection</button>
+            <button class="tab-button" onclick="showTab('testing')">Fault Testing</button>
+            <button class="tab-button" onclick="showTab('analysis')">Analysis</button>
         </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
+        <main>
             <!-- Simulation Tab -->
             <div id="simulation" class="tab-content active">
+                <h2>System Simulation</h2>
                 <div class="simulation-controls">
-                    <h2>System Parameters</h2>
-                    <div class="control-grid">
-                        <div class="control-group">
-                            <label for="thermal-capacitance">Thermal Capacitance (J/K)</label>
-                            <input type="range" id="thermal-capacitance" min="500" max="2000" value="1000" step="50">
-                            <span class="value-display" id="thermal-capacitance-value">1000</span>
-                        </div>
-                        <div class="control-group">
-                            <label for="mass-flow">Mass Flow Rate (kg/s)</label>
-                            <input type="range" id="mass-flow" min="0.05" max="0.2" value="0.1" step="0.01">
-                            <span class="value-display" id="mass-flow-value">0.1</span>
-                        </div>
-                        <div class="control-group">
-                            <label for="heat-capacity">Specific Heat Capacity (J/kg·K)</label>
-                            <input type="range" id="heat-capacity" min="3000" max="5000" value="4180" step="20">
-                            <span class="value-display" id="heat-capacity-value">4180</span>
-                        </div>
-                        <div class="control-group">
-                            <label for="heat-exchanger">Heat Exchanger Effectiveness (W/K)</label>
-                            <input type="range" id="heat-exchanger" min="20" max="100" value="50" step="5">
-                            <span class="value-display" id="heat-exchanger-value">50</span>
-                        </div>
-                        <div class="control-group">
-                            <label for="heat-input">Heat Input (W)</label>
-                            <input type="range" id="heat-input" min="500" max="2000" value="1000" step="50">
-                            <span class="value-display" id="heat-input-value">1000</span>
-                        </div>
-                        <div class="control-group">
-                            <label for="heat-output">Heat Output (W)</label>
-                            <input type="range" id="heat-output" min="500" max="2000" value="1000" step="50">
-                            <span class="value-display" id="heat-output-value">1000</span>
-                        </div>
-                    </div>
-                    
-                    <div class="simulation-buttons">
-                        <button id="start-simulation" class="btn btn-primary">Start Simulation</button>
-                        <button id="stop-simulation" class="btn btn-secondary" disabled>Stop Simulation</button>
-                        <button id="reset-simulation" class="btn btn-outline">Reset</button>
-                    </div>
-                </div>
-
-                <div class="simulation-results">
-                    <h2>Simulation Results</h2>
-                    <div class="chart-container">
-                        <canvas id="temperature-chart"></canvas>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="flow-chart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Monitoring Tab -->
-            <div id="monitoring" class="tab-content">
-                <div class="monitoring-dashboard">
-                    <h2>Real-time System Monitoring</h2>
-                    
-                    <div class="status-grid">
-                        <div class="status-card">
-                            <h3>Hot Temperature</h3>
-                            <div class="status-value" id="hot-temp-value">-- K</div>
-                            <div class="status-trend" id="hot-temp-trend">--</div>
-                        </div>
-                        <div class="status-card">
-                            <h3>Cold Temperature</h3>
-                            <div class="status-value" id="cold-temp-value">-- K</div>
-                            <div class="status-trend" id="cold-temp-trend">--</div>
-                        </div>
-                        <div class="status-card">
-                            <h3>Mass Flow Rate</h3>
-                            <div class="status-value" id="flow-value">-- kg/s</div>
-                            <div class="status-trend" id="flow-trend">--</div>
-                        </div>
-                        <div class="status-card">
-                            <h3>System Status</h3>
-                            <div class="status-value" id="system-status">Normal</div>
-                            <div class="status-indicator" id="status-indicator"></div>
-                        </div>
-                    </div>
-
-                    <div class="monitoring-charts">
-                        <div class="chart-container">
-                            <canvas id="monitoring-chart"></canvas>
-                        </div>
-                        <div class="chart-container">
-                            <canvas id="residual-chart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="anomaly-panel">
-                        <h3>Anomaly Detection</h3>
-                        <div class="anomaly-list" id="anomaly-list">
-                            <div class="anomaly-item">
-                                <span class="anomaly-time">--:--:--</span>
-                                <span class="anomaly-type">No anomalies detected</span>
-                                <span class="anomaly-severity normal">Normal</span>
+                    <div class="control-section">
+                        <h3>System Parameters</h3>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <label for="heatInput">Heat Input (W):</label>
+                                <input type="range" id="heatInput" min="500" max="3000" value="1000" step="50">
+                                <span id="heatInputValue">1000 W</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="massFlow">Mass Flow Rate (kg/s):</label>
+                                <input type="range" id="massFlow" min="0.01" max="1.0" value="0.1" step="0.01">
+                                <span id="massFlowValue">0.1 kg/s</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="heatCapacity">Heat Capacity (J/K):</label>
+                                <input type="range" id="heatCapacity" min="1000" max="10000" value="4180" step="100">
+                                <span id="heatCapacityValue">4180 J/K</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="heatExchangerUA">Heat Exchanger UA (W/K):</label>
+                                <input type="range" id="heatExchangerUA" min="10" max="500" value="50" step="5">
+                                <span id="heatExchangerUAValue">50 W/K</span>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Testing Tab -->
-            <div id="testing" class="tab-content">
-                <div class="testing-interface">
-                    <h2>Fault Injection and Testing</h2>
                     
-                    <div class="test-scenarios">
-                        <h3>Test Scenarios</h3>
-                        <div class="scenario-grid">
-                            <button class="scenario-btn" data-scenario="nominal">Nominal Operation</button>
-                            <button class="scenario-btn" data-scenario="pump-degradation">Pump Degradation</button>
-                            <button class="scenario-btn" data-scenario="heat-exchanger-fouling">Heat Exchanger Fouling</button>
-                            <button class="scenario-btn" data-scenario="sensor-bias">Sensor Bias</button>
-                            <button class="scenario-btn" data-scenario="sensor-noise">Sensor Noise Increase</button>
-                            <button class="scenario-btn" data-scenario="mass-flow-reduction">Mass Flow Reduction</button>
-                            <button class="scenario-btn" data-scenario="multiple-faults">Multiple Faults</button>
+                    <div class="control-section">
+                        <h3>Initial Conditions</h3>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <label for="initialTempHot">Initial T_hot (K):</label>
+                                <input type="range" id="initialTempHot" min="250" max="400" value="350" step="1">
+                                <span id="initialTempHotValue">350 K</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="initialTempCold">Initial T_cold (K):</label>
+                                <input type="range" id="initialTempCold" min="200" max="350" value="300" step="1">
+                                <span id="initialTempColdValue">300 K</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="fault-controls">
-                        <h3>Manual Fault Injection</h3>
-                        <div class="fault-control-grid">
-                            <div class="fault-control-group">
-                                <label for="fault-type">Fault Type</label>
-                                <select id="fault-type">
-                                    <option value="none">None</option>
-                                    <option value="pump-degradation">Pump Degradation</option>
-                                    <option value="heat-exchanger-fouling">Heat Exchanger Fouling</option>
-                                    <option value="sensor-bias">Sensor Bias</option>
-                                    <option value="sensor-noise">Sensor Noise Increase</option>
-                                    <option value="mass-flow-reduction">Mass Flow Reduction</option>
+                    <div class="control-section">
+                        <h3>Simulation Settings</h3>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <label for="simDuration">Duration (s):</label>
+                                <input type="range" id="simDuration" min="100" max="1000" value="300" step="10">
+                                <span id="simDurationValue">300 s</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="sampleRate">Sample Rate (Hz):</label>
+                                <input type="range" id="sampleRate" min="0.1" max="10" value="1" step="0.1">
+                                <span id="sampleRateValue">1 Hz</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="heatInputType">Heat Input Type:</label>
+                                <select id="heatInputType">
+                                    <option value="constant">Constant</option>
+                                    <option value="step">Step</option>
+                                    <option value="ramp">Ramp</option>
+                                    <option value="pulse">Pulse</option>
+                                    <option value="sine">Sine Wave</option>
                                 </select>
                             </div>
-                            <div class="fault-control-group">
-                                <label for="fault-start-time">Start Time (s)</label>
-                                <input type="number" id="fault-start-time" min="0" max="1000" value="50" step="10">
-                            </div>
-                            <div class="fault-control-group">
-                                <label for="fault-duration">Duration (s)</label>
-                                <input type="number" id="fault-duration" min="10" max="500" value="100" step="10">
-                            </div>
-                            <div class="fault-control-group">
-                                <button id="inject-fault" class="btn btn-warning">Inject Fault</button>
-                                <button id="clear-faults" class="btn btn-outline">Clear All Faults</button>
-                            </div>
                         </div>
                     </div>
-
-                    <div class="test-results">
-                        <h3>Test Results</h3>
-                        <div class="results-summary">
-                            <div class="result-item">
-                                <span class="result-label">Tests Run:</span>
-                                <span class="result-value" id="tests-run">0</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Tests Passed:</span>
-                                <span class="result-value" id="tests-passed">0</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Tests Failed:</span>
-                                <span class="result-value" id="tests-failed">0</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Success Rate:</span>
-                                <span class="result-value" id="success-rate">0%</span>
-                            </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button id="runSimulation" class="btn btn-primary">Run Simulation</button>
+                    <button id="stopSimulation" class="btn btn-secondary" disabled>Stop Simulation</button>
+                    <button id="exportData" class="btn btn-info">Export Data</button>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="simulationChart"></canvas>
+                </div>
+                
+                <div class="simulation-results" id="simulationResults" style="display: none;">
+                    <h3>Simulation Results</h3>
+                    <div class="results-grid">
+                        <div class="result-card">
+                            <h4>Final Temperatures</h4>
+                            <p>Plant T_hot: <span id="finalPlantHot">--</span> K</p>
+                            <p>Twin T_hot: <span id="finalTwinHot">--</span> K</p>
                         </div>
-                        
-                        <div class="test-chart-container">
-                            <canvas id="test-results-chart"></canvas>
+                        <div class="result-card">
+                            <h4>Temperature Range</h4>
+                            <p>Min: <span id="minTemp">--</span> K</p>
+                            <p>Max: <span id="maxTemp">--</span> K</p>
+                        </div>
+                        <div class="result-card">
+                            <h4>Residual Statistics</h4>
+                            <p>Mean: <span id="meanResidual">--</span> K</p>
+                            <p>Std Dev: <span id="stdResidual">--</span> K</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Documentation Tab -->
-            <div id="documentation" class="tab-content">
-                <div class="documentation-content">
-                    <h2>System Documentation</h2>
-                    
-                    <div class="doc-nav">
-                        <button class="doc-nav-btn active" data-doc="overview">Overview</button>
-                        <button class="doc-nav-btn" data-doc="technical-specs">Technical Specifications</button>
-                        <button class="doc-nav-btn" data-doc="user-guide">User Guide</button>
-                        <button class="doc-nav-btn" data-doc="api-reference">API Reference</button>
-                        <button class="doc-nav-btn" data-doc="troubleshooting">Troubleshooting</button>
+            <!-- Real-time Monitoring Tab -->
+            <div id="monitoring" class="tab-content">
+                <h2>Real-time Monitoring</h2>
+                <div class="monitoring-controls">
+                    <div class="control-group">
+                        <label for="monitoringRate">Update Rate (Hz):</label>
+                        <input type="range" id="monitoringRate" min="0.1" max="5" value="1" step="0.1">
+                        <span id="monitoringRateValue">1 Hz</span>
                     </div>
-
-                    <div class="doc-content">
-                        <div id="overview" class="doc-section active">
-                            <h3>System Overview</h3>
-                            <p>The Thermal Cooling Loop Digital Twin is a comprehensive monitoring and analysis system for closed-loop cooling systems used in aerospace thermal management and nuclear auxiliary systems.</p>
-                            
-                            <h4>Key Features</h4>
-                            <ul>
-                                <li>Real-time thermal system simulation</li>
-                                <li>Advanced anomaly detection algorithms</li>
-                                <li>Interactive fault injection and testing</li>
-                                <li>Comprehensive monitoring dashboard</li>
-                                <li>Mobile-responsive web interface</li>
-                            </ul>
-
-                            <h4>Applications</h4>
-                            <ul>
-                                <li>Aerospace thermal management systems</li>
-                                <li>Nuclear power plant auxiliary cooling</li>
-                                <li>Industrial process cooling systems</li>
-                                <li>Research and development applications</li>
-                            </ul>
+                    <div class="control-group">
+                        <label for="detectionMethods">Detection Methods:</label>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" value="residual_threshold" checked> Residual Threshold</label>
+                            <label><input type="checkbox" value="rolling_z_score" checked> Rolling Z-Score</label>
+                            <label><input type="checkbox" value="isolation_forest" checked> Isolation Forest</label>
+                            <label><input type="checkbox" value="one_class_svm"> One-Class SVM</label>
                         </div>
+                    </div>
+                    <button id="startMonitoring" class="btn btn-primary">Start Monitoring</button>
+                    <button id="stopMonitoring" class="btn btn-secondary" disabled>Stop Monitoring</button>
+                </div>
+                
+                <div class="status-grid">
+                    <div class="status-card">
+                        <h3>Plant Temperature (Hot)</h3>
+                        <div class="metric" id="plantTempHot">-- K</div>
+                        <div class="trend" id="plantTempHotTrend">--</div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Twin Temperature (Hot)</h3>
+                        <div class="metric" id="twinTempHot">-- K</div>
+                        <div class="trend" id="twinTempHotTrend">--</div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Residual</h3>
+                        <div class="metric" id="residual">-- K</div>
+                        <div class="trend" id="residualTrend">--</div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Anomaly Status</h3>
+                        <div class="metric" id="anomalyStatus">Normal</div>
+                        <div class="confidence" id="anomalyConfidence">--</div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="monitoringChart"></canvas>
+                </div>
+                
+                <div class="anomaly-log" id="anomalyLog">
+                    <h3>Anomaly Log</h3>
+                    <div class="log-entries" id="logEntries">
+                        <p class="log-entry">No anomalies detected</p>
+                    </div>
+                </div>
+            </div>
 
-                        <div id="technical-specs" class="doc-section">
-                            <h3>Technical Specifications</h3>
-                            <div class="specs-grid">
-                                <div class="spec-group">
-                                    <h4>System Parameters</h4>
-                                    <ul>
-                                        <li>Thermal Capacitance: 500-2000 J/K</li>
-                                        <li>Mass Flow Rate: 0.05-0.2 kg/s</li>
-                                        <li>Specific Heat Capacity: 3000-5000 J/(kg·K)</li>
-                                        <li>Heat Exchanger Effectiveness: 20-100 W/K</li>
-                                        <li>Heat Input/Output: 500-2000 W</li>
-                                    </ul>
-                                </div>
-                                <div class="spec-group">
-                                    <h4>Performance Metrics</h4>
-                                    <ul>
-                                        <li>Sampling Rate: 1-10 Hz</li>
-                                        <li>Response Time: < 100 ms</li>
-                                        <li>Accuracy: ±0.1%</li>
-                                        <li>Detection Latency: < 5 seconds</li>
-                                    </ul>
-                                </div>
+            <!-- ML Detection Tab -->
+            <div id="ml-detection" class="tab-content">
+                <h2>Advanced ML Anomaly Detection</h2>
+                
+                <div class="ml-controls">
+                    <div class="control-section">
+                        <h3>ML Configuration</h3>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <label for="mlEnabled">Enable ML Detection:</label>
+                                <input type="checkbox" id="mlEnabled" checked>
                             </div>
-                        </div>
-
-                        <div id="user-guide" class="doc-section">
-                            <h3>User Guide</h3>
-                            <h4>Getting Started</h4>
-                            <ol>
-                                <li>Adjust system parameters using the sliders in the Simulation tab</li>
-                                <li>Click "Start Simulation" to begin real-time monitoring</li>
-                                <li>Switch to the Monitoring tab to view live system status</li>
-                                <li>Use the Testing tab to inject faults and test system response</li>
-                            </ol>
-
-                            <h4>Parameter Adjustment</h4>
-                            <p>Use the parameter sliders to modify system behavior. Changes take effect immediately when the simulation is running.</p>
-
-                            <h4>Fault Injection</h4>
-                            <p>Select a fault type, set the start time and duration, then click "Inject Fault" to simulate system failures.</p>
-                        </div>
-
-                        <div id="api-reference" class="doc-section">
-                            <h3>API Reference</h3>
-                            <h4>REST API Endpoints</h4>
-                            <div class="api-endpoints">
-                                <div class="endpoint">
-                                    <code>GET /api/status</code>
-                                    <p>Get current system status</p>
-                                </div>
-                                <div class="endpoint">
-                                    <code>POST /api/simulate</code>
-                                    <p>Start simulation with parameters</p>
-                                </div>
-                                <div class="endpoint">
-                                    <code>POST /api/fault</code>
-                                    <p>Inject fault into system</p>
-                                </div>
+                            <div class="control-group">
+                                <label for="featureEngineering">Feature Engineering:</label>
+                                <input type="checkbox" id="featureEngineering" checked>
+                            </div>
+                            <div class="control-group">
+                                <label for="ensembleVoting">Ensemble Voting:</label>
+                                <input type="checkbox" id="ensembleVoting" checked>
+                            </div>
+                            <div class="control-group">
+                                <label for="adaptiveThresholds">Adaptive Thresholds:</label>
+                                <input type="checkbox" id="adaptiveThresholds" checked>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="control-section">
+                        <h3>Model Training</h3>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <label for="trainingSamples">Training Samples:</label>
+                                <input type="range" id="trainingSamples" min="50" max="500" value="100" step="10">
+                                <span id="trainingSamplesValue">100</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="testSize">Test Size:</label>
+                                <input type="range" id="testSize" min="0.1" max="0.5" value="0.2" step="0.05">
+                                <span id="testSizeValue">0.2</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ml-actions">
+                    <button id="createMLDetector" class="btn btn-primary">Create ML Detector</button>
+                    <button id="generateTrainingData" class="btn btn-info">Generate Training Data</button>
+                    <button id="trainModels" class="btn btn-success">Train Models</button>
+                    <button id="resetML" class="btn btn-secondary">Reset ML</button>
+                </div>
+                
+                <div class="ml-status" id="mlStatus">
+                    <h3>ML Detector Status</h3>
+                    <div class="status-grid">
+                        <div class="status-card">
+                            <h4>Enhanced Detector</h4>
+                            <div class="metric" id="enhancedDetectorStatus">Not Created</div>
+                        </div>
+                        <div class="status-card">
+                            <h4>ML Detector</h4>
+                            <div class="metric" id="mlDetectorStatus">Not Created</div>
+                        </div>
+                        <div class="status-card">
+                            <h4>Training Data</h4>
+                            <div class="metric" id="trainingDataStatus">0 samples</div>
+                        </div>
+                        <div class="status-card">
+                            <h4>Model Performance</h4>
+                            <div class="metric" id="modelPerformance">--</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ml-testing" id="mlTesting" style="display: none;">
+                    <h3>ML Detection Testing</h3>
+                    <div class="test-scenarios">
+                        <div class="control-group">
+                            <label for="testScenario">Test Scenario:</label>
+                            <select id="testScenario">
+                                <option value="normal">Normal Operation</option>
+                                <option value="temp_anomaly">Temperature Anomaly</option>
+                                <option value="flow_anomaly">Flow Rate Anomaly</option>
+                                <option value="multiple_anomalies">Multiple Anomalies</option>
+                            </select>
+                        </div>
+                        <button id="testDetection" class="btn btn-warning">Test Detection</button>
+                    </div>
+                    
+                    <div class="test-results" id="testResults" style="display: none;">
+                        <h4>Test Results</h4>
+                        <div class="results-grid">
+                            <div class="result-card">
+                                <h5>Detection Result</h5>
+                                <p>Anomaly: <span id="testAnomaly">--</span></p>
+                                <p>Confidence: <span id="testConfidence">--</span></p>
+                            </div>
+                            <div class="result-card">
+                                <h5>Method Used</h5>
+                                <p>Method: <span id="testMethod">--</span></p>
+                                <p>Severity: <span id="testSeverity">--</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="mlChart"></canvas>
+                </div>
+            </div>
 
-                        <div id="troubleshooting" class="doc-section">
-                            <h3>Troubleshooting</h3>
-                            <h4>Common Issues</h4>
-                            <div class="troubleshooting-item">
-                                <h5>Simulation not starting</h5>
-                                <p>Check that all parameters are within valid ranges and try resetting the simulation.</p>
+            <!-- Fault Testing Tab -->
+            <div id="testing" class="tab-content">
+                <h2>Fault Testing & Injection</h2>
+                
+                <div class="fault-controls">
+                    <div class="control-section">
+                        <h3>Fault Configuration</h3>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <label for="faultType">Fault Type:</label>
+                                <select id="faultType">
+                                    <option value="none">None</option>
+                                    <option value="pump_degradation">Pump Degradation</option>
+                                    <option value="heat_exchanger_fouling">Heat Exchanger Fouling</option>
+                                    <option value="sensor_bias">Sensor Bias</option>
+                                    <option value="sensor_noise">Sensor Noise Increase</option>
+                                    <option value="mass_flow_reduction">Mass Flow Reduction</option>
+                                </select>
                             </div>
-                            <div class="troubleshooting-item">
-                                <h5>Charts not updating</h5>
-                                <p>Ensure the simulation is running and check browser console for errors.</p>
+                            <div class="control-group">
+                                <label for="faultStartTime">Fault Start Time (s):</label>
+                                <input type="range" id="faultStartTime" min="0" max="100" value="50" step="1">
+                                <span id="faultStartTimeValue">50 s</span>
                             </div>
-                            <div class="troubleshooting-item">
-                                <h5>Fault injection not working</h5>
-                                <p>Verify that the simulation is running and the fault start time is in the future.</p>
+                            <div class="control-group">
+                                <label for="faultSeverity">Fault Severity:</label>
+                                <input type="range" id="faultSeverity" min="0.1" max="1.0" value="0.5" step="0.1">
+                                <span id="faultSeverityValue">0.5</span>
                             </div>
+                        </div>
+                    </div>
+                    
+                    <div class="control-section">
+                        <h3>Sensor Configuration</h3>
+                        <div class="controls-grid">
+                            <div class="control-group">
+                                <label for="sensorNoise">Sensor Noise Level:</label>
+                                <input type="range" id="sensorNoise" min="0" max="2" value="0.5" step="0.1">
+                                <span id="sensorNoiseValue">0.5 K</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="sensorBias">Sensor Bias:</label>
+                                <input type="range" id="sensorBias" min="-10" max="10" value="0" step="0.5">
+                                <span id="sensorBiasValue">0 K</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="fault-actions">
+                    <button id="injectFault" class="btn btn-warning">Inject Fault</button>
+                    <button id="clearFaults" class="btn btn-secondary">Clear Faults</button>
+                    <button id="runFaultTest" class="btn btn-danger">Run Fault Test</button>
+                </div>
+                
+                <div class="fault-status" id="faultStatus">
+                    <h3>Active Faults</h3>
+                    <div class="fault-list" id="faultList">
+                        <p>No active faults</p>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="testingChart"></canvas>
+                </div>
+                
+                <div class="fault-results" id="faultResults" style="display: none;">
+                    <h3>Fault Test Results</h3>
+                    <div class="results-grid">
+                        <div class="result-card">
+                            <h4>Detection Performance</h4>
+                            <p>Detection Time: <span id="detectionTime">--</span> s</p>
+                            <p>False Positives: <span id="falsePositives">--</span></p>
+                        </div>
+                        <div class="result-card">
+                            <h4>System Impact</h4>
+                            <p>Max Temperature: <span id="maxTempFault">--</span> K</p>
+                            <p>Max Residual: <span id="maxResidualFault">--</span> K</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Tab -->
+            <div id="analysis" class="tab-content">
+                <h2>System Analysis & Performance</h2>
+                
+                <div class="analysis-controls">
+                    <div class="control-group">
+                        <label for="analysisTimeWindow">Time Window (s):</label>
+                        <input type="range" id="analysisTimeWindow" min="60" max="3600" value="300" step="60">
+                        <span id="analysisTimeWindowValue">300 s</span>
+                    </div>
+                    <div class="control-group">
+                        <label for="analysisType">Analysis Type:</label>
+                        <select id="analysisType">
+                            <option value="performance">Performance Analysis</option>
+                            <option value="anomaly">Anomaly Analysis</option>
+                            <option value="residual">Residual Analysis</option>
+                            <option value="comparison">Method Comparison</option>
+                        </select>
+                    </div>
+                    <button id="runAnalysis" class="btn btn-primary">Run Analysis</button>
+                    <button id="exportAnalysis" class="btn btn-info">Export Analysis</button>
+                </div>
+                
+                <div class="analysis-results" id="analysisResults">
+                    <div class="analysis-section">
+                        <h3>Performance Metrics</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <h4>Detection Accuracy</h4>
+                                <div class="metric-value" id="detectionAccuracy">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <h4>False Positive Rate</h4>
+                                <div class="metric-value" id="falsePositiveRate">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <h4>Response Time</h4>
+                                <div class="metric-value" id="responseTime">--</div>
+                            </div>
+                            <div class="metric-card">
+                                <h4>System Stability</h4>
+                                <div class="metric-value" id="systemStability">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-section">
+                        <h3>Statistical Analysis</h3>
+                        <div class="chart-container">
+                            <canvas id="analysisChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-section">
+                        <h3>Method Comparison</h3>
+                        <div class="comparison-table" id="comparisonTable">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Method</th>
+                                        <th>Accuracy</th>
+                                        <th>Precision</th>
+                                        <th>Recall</th>
+                                        <th>F1-Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="comparisonTableBody">
+                                    <tr><td colspan="5">No data available</td></tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <p>&copy; 2024 Thermal Cooling Loop Digital Twin. All rights reserved.</p>
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>Thermal Cooling Loop Digital Twin</h4>
+                    <p>Advanced real-time monitoring and ML-based anomaly detection</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Features</h4>
+                    <ul>
+                        <li>Real-time simulation</li>
+                        <li>ML anomaly detection</li>
+                        <li>Fault injection testing</li>
+                        <li>Performance analysis</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Technology</h4>
+                    <ul>
+                        <li>Python & SciPy</li>
+                        <li>Machine Learning</li>
+                        <li>Real-time Processing</li>
+                        <li>Web Technologies</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Thermal Cooling Loop Digital Twin. All rights reserved.</p>
+            </div>
         </footer>
     </div>
 
-    <!-- Scripts -->
     <script src="js/main.js"></script>
     <script src="js/simulation.js"></script>
     <script src="js/monitoring.js"></script>
+    <script src="js/ml-detection.js"></script>
     <script src="js/testing.js"></script>
+    <script src="js/analysis.js"></script>
 </body>
 </html>
