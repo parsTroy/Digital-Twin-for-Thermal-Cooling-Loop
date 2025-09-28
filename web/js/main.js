@@ -37,7 +37,6 @@ class ThermalCoolingApp {
         if (isGitHubPages) {
             console.log('GitHub Pages detected - initializing demo mode immediately');
             this.initializeDemoMode();
-            this.updateConnectionStatus(false, 'Demo Mode');
         } else {
             this.connectToBackend();
         }
@@ -50,7 +49,6 @@ class ThermalCoolingApp {
         // For GitHub Pages deployment, always use demo mode
         if (window.location.hostname === 'parstroy.github.io' || window.location.hostname.includes('github.io')) {
             console.log('GitHub Pages detected - using demo mode');
-            this.updateConnectionStatus(false, 'Demo Mode');
             this.initializeDemoMode();
             return;
         }
@@ -60,7 +58,6 @@ class ThermalCoolingApp {
             const response = await fetch(`${BACKEND_URL}/api/status`);
             if (response.ok) {
                 console.log('Backend HTTP connection successful');
-                this.updateConnectionStatus(true);
             } else {
                 throw new Error('Backend not responding');
             }
@@ -70,7 +67,6 @@ class ThermalCoolingApp {
             
         } catch (error) {
             console.error('Failed to connect to backend:', error);
-            this.updateConnectionStatus(false, 'Demo Mode');
             this.showNotification('Backend unavailable - using demo mode', 'info');
             this.initializeDemoMode();
         }
@@ -91,7 +87,6 @@ class ThermalCoolingApp {
             websocket.onopen = (event) => {
                 console.log('WebSocket connected');
                 isConnected = true;
-                this.updateConnectionStatus(true);
             };
             
             websocket.onmessage = (event) => {
@@ -102,7 +97,6 @@ class ThermalCoolingApp {
             websocket.onclose = (event) => {
                 console.log('WebSocket disconnected');
                 isConnected = false;
-                this.updateConnectionStatus(false);
                 
                 // Attempt to reconnect after 3 seconds
                 setTimeout(() => this.connectWebSocket(), 3000);
@@ -111,13 +105,11 @@ class ThermalCoolingApp {
             websocket.onerror = (error) => {
                 console.error('WebSocket error:', error);
                 isConnected = false;
-                this.updateConnectionStatus(false);
             };
             
         } catch (error) {
             console.error('WebSocket connection failed:', error);
             isConnected = false;
-            this.updateConnectionStatus(false);
         }
     }
 
@@ -143,13 +135,6 @@ class ThermalCoolingApp {
         }
     }
 
-    updateConnectionStatus(connected, mode = 'Connected') {
-        const statusElement = document.getElementById('connectionStatus');
-        if (statusElement) {
-            statusElement.textContent = connected ? mode : 'Disconnected';
-            statusElement.className = connected ? 'status-connected' : 'status-disconnected';
-        }
-    }
 
     updateRealTimeData(data) {
         // Update temperature displays
