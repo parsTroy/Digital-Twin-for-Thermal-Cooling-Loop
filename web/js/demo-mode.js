@@ -261,8 +261,8 @@ class DemoMode {
     
     updateCharts(data) {
         // Update temperature chart
-        if (window.thermalApp && window.thermalApp.charts && window.thermalApp.charts.temperature) {
-            const chart = window.thermalApp.charts.temperature;
+        if (typeof charts !== 'undefined' && charts.temperature) {
+            const chart = charts.temperature;
             chart.data.labels.push(new Date().toLocaleTimeString());
             chart.data.datasets[0].data.push(data.plant_T_hot);
             chart.data.datasets[1].data.push(data.plant_T_cold);
@@ -279,8 +279,8 @@ class DemoMode {
         }
         
         // Update residuals chart
-        if (window.thermalApp && window.thermalApp.charts && window.thermalApp.charts.residuals) {
-            const chart = window.thermalApp.charts.residuals;
+        if (typeof charts !== 'undefined' && charts.residuals) {
+            const chart = charts.residuals;
             chart.data.labels.push(new Date().toLocaleTimeString());
             chart.data.datasets[0].data.push(data.residual_T_hot);
             chart.data.datasets[1].data.push(data.residual_T_cold);
