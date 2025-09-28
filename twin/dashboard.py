@@ -29,6 +29,8 @@ from twin.model import (
     create_complex_heat_input
 )
 from twin.plant_simulator import PlantSimulator, FaultType
+from twin.digital_twin import DigitalTwinManager, create_digital_twin_manager
+from twin.detector import DetectionMethod, AnomalyType
 
 
 def setup_page():
@@ -435,7 +437,7 @@ def main():
     params = create_sidebar()
     
     # Main content
-    tab1, tab2, tab3 = st.tabs(["Digital Twin", "Plant Simulator", "Analysis"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Digital Twin", "Plant Simulator", "Real-time Monitoring", "Analysis"])
     
     with tab1:
         st.header("Digital Twin Simulation")
@@ -495,6 +497,222 @@ def main():
                     st.dataframe(df.head(20))
     
     with tab3:
+        st.header("Real-time Digital Twin Monitoring")
+        
+        # Detection method selection
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            detection_methods = st.multiselect(
+                "Detection Methods",
+                ["Residual Threshold", "Rolling Z-Score", "Isolation Forest", "One-Class SVM", "SPC", "CUSUM"],
+                default=["Residual Threshold", "Rolling Z-Score", "Isolation Forest"]
+            )
+        
+        with col2:
+            update_rate = st.slider("Update Rate (Hz)", 0.1, 5.0, 1.0, 0.1)
+        
+        # Convert detection methods
+        method_map = {
+            "Residual Threshold": DetectionMethod.RESIDUAL_THRESHOLD,
+            "Rolling Z-Score": DetectionMethod.ROLLING_Z_SCORE,
+            "Isolation Forest": DetectionMethod.ISOLATION_FOREST,
+            "One-Class SVM": DetectionMethod.ONE_CLASS_SVM,
+            "SPC": DetectionMethod.STATISTICAL_PROCESS_CONTROL,
+            "CUSUM": DetectionMethod.CUSUM
+        }
+        
+        selected_methods = [method_map[m] for m in detection_methods]
+        
+        # Initialize session state for digital twin
+        if 'digital_twin_manager' not in st.session_state:
+            st.session_state.digital_twin_manager = None
+        if 'monitoring_data' not in st.session_state:
+            st.session_state.monitoring_data = []
+        if 'anomaly_count' not in st.session_state:
+            st.session_state.anomaly_count = 0
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("Start Real-time Monitoring", type="primary"):
+                # Create plant simulator
+                plant_params = {
+                    'C': params['C'],
+                    'm_dot': params['m_dot'],
+                    'cp': params['cp'],
+                    'UA': params['UA'],
+                    'Q_in': params['Q_in'],
+                    'Q_out': params['Q_out']
+                }
+                
+                plant_simulator = PlantSimulator(plant_params, noise_level=0.005, sample_rate=update_rate)
+                
+                # Create digital twin manager
+                twin_manager = DigitalTwinManager(
+                    plant_simulator=plant_simulator,
+                    twin_params=plant_params,
+                    detection_methods=selected_methods,
+                    update_rate=update_rate
+                )
+                
+                # Set up callbacks
+                def anomaly_callback(anomaly_results):
+                    st.session_state.anomaly_count += 1
+                    st.session_state.monitoring_data.append({
+                        'time': anomaly_results['timestamp'],
+                        'type': 'anomaly',
+                        'severity': anomaly_results['overall_severity'].value,
+                        'residuals': anomaly_results['residuals']
+                    })
+                
+                def data_callback(data):
+                    st.session_state.monitoring_data.append({
+                        'time': data['timestamp'],
+                        'type': 'data',
+                        'plant_state': data['plant_state'],
+                        'twin_state': data['twin_state'],
+                        'residuals': data['residuals'],
+                        'anomaly': data['anomaly_results']['overall_anomaly']
+                    })
+                
+                twin_manager.add_anomaly_callback(anomaly_callback)
+                twin_manager.add_data_callback(data_callback)
+                
+                # Start monitoring
+                initial_conditions = np.array([params['initial_temp_hot'], params['initial_temp_cold']])
+                twin_manager.start(initial_conditions)
+                
+                st.session_state.digital_twin_manager = twin_manager
+                st.success("Real-time monitoring started!")
+        
+        with col2:
+            if st.button("Stop Monitoring"):
+                if st.session_state.digital_twin_manager:
+                    st.session_state.digital_twin_manager.stop()
+                    st.session_state.digital_twin_manager = None
+                    st.success("Monitoring stopped!")
+        
+        with col3:
+            if st.button("Clear Data"):
+                st.session_state.monitoring_data = []
+                st.session_state.anomaly_count = 0
+                st.success("Data cleared!")
+        
+        # Display current status
+        if st.session_state.digital_twin_manager:
+            current_data = st.session_state.digital_twin_manager.get_current_data()
+            
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("Plant T_hot", f"{current_data['plant_state'][0]:.1f} K")
+            
+            with col2:
+                st.metric("Twin T_hot", f"{current_data['twin_state'][0]:.1f} K")
+            
+            with col3:
+                residual = current_data['residuals'].get('T_hot', 0)
+                st.metric("Residual", f"{residual:.2f} K")
+            
+            with col4:
+                anomaly_status = "Yes" if current_data['anomaly_results']['overall_anomaly'] else "No"
+                st.metric("Anomaly", anomaly_status)
+            
+            # Real-time plots
+            if st.session_state.monitoring_data:
+                df = pd.DataFrame(st.session_state.monitoring_data)
+                data_df = df[df['type'] == 'data']
+                
+                if len(data_df) > 0:
+                    # Temperature comparison plot
+                    fig1 = go.Figure()
+                    
+                    fig1.add_trace(go.Scatter(
+                        x=data_df['time'],
+                        y=[state[0] for state in data_df['plant_state']],
+                        mode='lines',
+                        name='Plant T_hot',
+                        line=dict(color='blue', width=2)
+                    ))
+                    
+                    fig1.add_trace(go.Scatter(
+                        x=data_df['time'],
+                        y=[state[0] for state in data_df['twin_state']],
+                        mode='lines',
+                        name='Twin T_hot',
+                        line=dict(color='red', width=2, dash='dash')
+                    ))
+                    
+                    fig1.update_layout(
+                        title="Real-time Temperature Comparison",
+                        xaxis_title="Time (s)",
+                        yaxis_title="Temperature (K)",
+                        height=300
+                    )
+                    
+                    st.plotly_chart(fig1, use_container_width=True)
+                    
+                    # Residuals plot
+                    fig2 = go.Figure()
+                    
+                    residuals = [r.get('T_hot', 0) for r in data_df['residuals']]
+                    fig2.add_trace(go.Scatter(
+                        x=data_df['time'],
+                        y=residuals,
+                        mode='lines',
+                        name='T_hot Residual',
+                        line=dict(color='green', width=2)
+                    ))
+                    
+                    fig2.add_hline(y=0, line_dash="dash", line_color="gray", alpha=0.5)
+                    
+                    fig2.update_layout(
+                        title="Real-time Residuals",
+                        xaxis_title="Time (s)",
+                        yaxis_title="Residual (K)",
+                        height=300
+                    )
+                    
+                    st.plotly_chart(fig2, use_container_width=True)
+            
+            # Anomaly summary
+            st.subheader("Anomaly Summary")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Total Anomalies", st.session_state.anomaly_count)
+            
+            with col2:
+                if st.session_state.monitoring_data:
+                    anomaly_df = df[df['type'] == 'anomaly']
+                    if len(anomaly_df) > 0:
+                        severity_counts = anomaly_df['severity'].value_counts()
+                        st.metric("Critical Anomalies", severity_counts.get('critical', 0))
+                    else:
+                        st.metric("Critical Anomalies", 0)
+                else:
+                    st.metric("Critical Anomalies", 0)
+            
+            with col3:
+                if st.session_state.monitoring_data:
+                    recent_anomalies = df[df['type'] == 'anomaly'].tail(5)
+                    st.metric("Recent Anomalies", len(recent_anomalies))
+                else:
+                    st.metric("Recent Anomalies", 0)
+            
+            # Recent anomalies table
+            if st.session_state.monitoring_data:
+                anomaly_df = df[df['type'] == 'anomaly']
+                if len(anomaly_df) > 0:
+                    st.subheader("Recent Anomalies")
+                    recent_anomalies = anomaly_df.tail(10)[['time', 'severity', 'residuals']]
+                    st.dataframe(recent_anomalies, use_container_width=True)
+        
+        else:
+            st.info("Click 'Start Real-time Monitoring' to begin monitoring the digital twin.")
+    
+    with tab4:
         st.header("System Analysis")
         
         st.subheader("Parameter Sensitivity")
