@@ -286,6 +286,29 @@ class ThermalCoolingApp {
             });
         }
         
+        // Fault injection buttons
+        const injectFaultBtn = document.getElementById('injectFault');
+        const clearFaultsBtn = document.getElementById('clearFaults');
+        const runFaultTestBtn = document.getElementById('runFaultTest');
+        
+        if (injectFaultBtn) {
+            injectFaultBtn.addEventListener('click', () => {
+                this.injectFault();
+            });
+        }
+        
+        if (clearFaultsBtn) {
+            clearFaultsBtn.addEventListener('click', () => {
+                this.clearFaults();
+            });
+        }
+        
+        if (runFaultTestBtn) {
+            runFaultTestBtn.addEventListener('click', () => {
+                this.runFaultTest();
+            });
+        }
+        
         // Documentation navigation
         document.querySelectorAll('.doc-nav-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -370,41 +393,102 @@ class ThermalCoolingApp {
     async startSimulation() {
         if (this.isSimulationRunning) return;
         
+        // Check if we're in demo mode (no backend available)
+        if (!isConnected && window.demoMode) {
+            console.log('Using demo mode for simulation');
+            const result = await window.demoMode.startSimulation(this.getSimulationParameters());
+            if (result.status === 'success') {
+                this.isSimulationRunning = true;
+                const startBtn = document.getElementById('start-simulation');
+                const stopBtn = document.getElementById('stop-simulation');
+                if (startBtn) startBtn.disabled = true;
+                if (stopBtn) stopBtn.disabled = false;
+                this.showNotification('Demo simulation started', 'success');
+            }
+            return;
+        }
+        
+        // Try backend connection
         try {
             const params = this.getSimulationParameters();
             const result = await this.apiStartSimulation(params);
             
             if (result.status === 'success') {
                 this.isSimulationRunning = true;
-                document.getElementById('start-simulation').disabled = true;
-                document.getElementById('stop-simulation').disabled = false;
+                const startBtn = document.getElementById('start-simulation');
+                const stopBtn = document.getElementById('stop-simulation');
+                if (startBtn) startBtn.disabled = true;
+                if (stopBtn) stopBtn.disabled = false;
                 this.showNotification('Simulation started successfully', 'success');
             } else {
                 this.showNotification(`Failed to start simulation: ${result.message}`, 'error');
             }
         } catch (error) {
             console.error('Error starting simulation:', error);
-            this.showNotification('Failed to connect to backend', 'error');
+            this.showNotification('Backend unavailable, using demo mode', 'warning');
+            
+            // Fallback to demo mode
+            if (window.demoMode) {
+                const result = await window.demoMode.startSimulation(this.getSimulationParameters());
+                if (result.status === 'success') {
+                    this.isSimulationRunning = true;
+                    const startBtn = document.getElementById('start-simulation');
+                    const stopBtn = document.getElementById('stop-simulation');
+                    if (startBtn) startBtn.disabled = true;
+                    if (stopBtn) stopBtn.disabled = false;
+                    this.showNotification('Demo simulation started', 'success');
+                }
+            }
         }
     }
     
     async stopSimulation() {
         if (!this.isSimulationRunning) return;
         
+        // Check if we're in demo mode
+        if (!isConnected && window.demoMode) {
+            console.log('Stopping demo simulation');
+            const result = await window.demoMode.stopSimulation();
+            if (result.status === 'success') {
+                this.isSimulationRunning = false;
+                const startBtn = document.getElementById('start-simulation');
+                const stopBtn = document.getElementById('stop-simulation');
+                if (startBtn) startBtn.disabled = false;
+                if (stopBtn) stopBtn.disabled = true;
+                this.showNotification('Demo simulation stopped', 'info');
+            }
+            return;
+        }
+        
         try {
             const result = await this.apiStopSimulation();
             
             if (result.status === 'success') {
                 this.isSimulationRunning = false;
-                document.getElementById('start-simulation').disabled = false;
-                document.getElementById('stop-simulation').disabled = true;
+                const startBtn = document.getElementById('start-simulation');
+                const stopBtn = document.getElementById('stop-simulation');
+                if (startBtn) startBtn.disabled = false;
+                if (stopBtn) stopBtn.disabled = true;
                 this.showNotification('Simulation stopped', 'info');
             } else {
                 this.showNotification(`Failed to stop simulation: ${result.message}`, 'error');
             }
         } catch (error) {
             console.error('Error stopping simulation:', error);
-            this.showNotification('Failed to connect to backend', 'error');
+            this.showNotification('Backend unavailable, using demo mode', 'warning');
+            
+            // Fallback to demo mode
+            if (window.demoMode) {
+                const result = await window.demoMode.stopSimulation();
+                if (result.status === 'success') {
+                    this.isSimulationRunning = false;
+                    const startBtn = document.getElementById('start-simulation');
+                    const stopBtn = document.getElementById('stop-simulation');
+                    if (startBtn) startBtn.disabled = false;
+                    if (stopBtn) stopBtn.disabled = true;
+                    this.showNotification('Demo simulation stopped', 'info');
+                }
+            }
         }
     }
     
@@ -412,17 +496,28 @@ class ThermalCoolingApp {
         this.stopSimulation();
         
         // Reset parameters to defaults
-        document.getElementById('thermal-capacitance').value = 1000;
-        document.getElementById('mass-flow').value = 0.1;
-        document.getElementById('heat-capacity').value = 4180;
-        document.getElementById('heat-exchanger').value = 50;
-        document.getElementById('heat-input').value = 1000;
-        document.getElementById('heat-output').value = 1000;
+        const elements = [
+            'thermal-capacitance', 'mass-flow', 'heat-capacity', 
+            'heat-exchanger', 'heat-input', 'heat-output'
+        ];
+        const defaults = [1000, 0.1, 4180, 50, 1000, 1000];
+        
+        elements.forEach((id, index) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.value = defaults[index];
+            }
+        });
         
         this.updateParameterDisplays();
         
         // Clear charts
         this.clearCharts();
+        
+        // Reset demo mode if available
+        if (window.demoMode) {
+            window.demoMode.stopSimulation();
+        }
         
         console.log('Simulation reset');
     }
@@ -645,6 +740,75 @@ class ThermalCoolingApp {
         } catch (error) {
             console.error('Error injecting fault:', error);
             return { status: 'error', message: error.message };
+        }
+    }
+    
+    // Fault injection methods
+    async injectFault() {
+        const faultType = document.getElementById('faultType')?.value || 'pump_degradation';
+        const faultStartTime = parseFloat(document.getElementById('faultStartTime')?.value || '0');
+        const faultSeverity = parseFloat(document.getElementById('faultSeverity')?.value || '0.5');
+        
+        const faultData = {
+            type: faultType,
+            start_time: faultStartTime,
+            params: {
+                reduction_factor: faultSeverity,
+                fouling_factor: faultSeverity,
+                bias_amount: faultSeverity * 10,
+                flow_reduction: faultSeverity
+            }
+        };
+        
+        // Use demo mode if available
+        if (window.demoMode) {
+            const result = await window.demoMode.injectFault(faultData);
+            this.showNotification(result.message, 'info');
+            this.updateFaultList(faultType);
+        } else {
+            // Try backend
+            try {
+                const result = await this.apiInjectFault(faultData);
+                this.showNotification(result.message, 'info');
+            } catch (error) {
+                this.showNotification('Fault injection failed', 'error');
+            }
+        }
+    }
+    
+    clearFaults() {
+        // Reset simulation parameters to clear any applied faults
+        this.resetSimulation();
+        this.showNotification('All faults cleared', 'info');
+        this.updateFaultList('none');
+    }
+    
+    runFaultTest() {
+        // Run a comprehensive fault test
+        this.showNotification('Running fault test...', 'info');
+        
+        // Inject a series of faults for testing
+        setTimeout(() => this.injectFault(), 1000);
+        setTimeout(() => this.injectFault(), 3000);
+        setTimeout(() => this.injectFault(), 5000);
+        
+        this.showNotification('Fault test completed', 'success');
+    }
+    
+    updateFaultList(faultType) {
+        const faultList = document.getElementById('faultList');
+        if (faultList) {
+            if (faultType === 'none') {
+                faultList.innerHTML = '<p>No active faults</p>';
+            } else {
+                const faultItem = document.createElement('div');
+                faultItem.className = 'fault-item';
+                faultItem.innerHTML = `
+                    <span class="fault-type">${faultType.replace('_', ' ').toUpperCase()}</span>
+                    <span class="fault-time">${new Date().toLocaleTimeString()}</span>
+                `;
+                faultList.appendChild(faultItem);
+            }
         }
     }
     

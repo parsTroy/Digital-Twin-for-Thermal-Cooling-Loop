@@ -84,6 +84,9 @@ class DemoMode {
     simulateStep() {
         this.timeStep++;
         
+        // Get current parameters from the UI
+        this.updateParametersFromUI();
+        
         // Simulate realistic thermal dynamics
         const dt = 1.0; // 1 second time step
         
@@ -91,35 +94,64 @@ class DemoMode {
         const noise = (Math.random() - 0.5) * 0.5;
         const heatInputVariation = Math.sin(this.timeStep * 0.1) * 50;
         
-        // Simple thermal model simulation
+        // Simple thermal model simulation with more realistic physics
         const currentHeatInput = this.heatInput + heatInputVariation;
         
-        // Temperature evolution (simplified)
-        const tempHot = this.baseTempHot + noise + (currentHeatInput / this.thermalCapacitance) * 0.1;
-        const tempCold = this.baseTempCold + noise * 0.5 + (tempHot - this.baseTempCold) * 0.1;
+        // Temperature evolution (more realistic thermal model)
+        const heatTransfer = this.heatTransferCoeff * (this.baseTempHot - this.baseTempCold);
+        const massFlowEffect = this.massFlow * this.heatCapacity * (this.baseTempHot - this.baseTempCold);
+        
+        // Update temperatures based on thermal model
+        const dT_hot = (currentHeatInput - heatTransfer - massFlowEffect) / this.thermalCapacitance;
+        const dT_cold = (massFlowEffect - this.heatOutput) / this.thermalCapacitance;
+        
+        this.baseTempHot += dT_hot * dt + noise;
+        this.baseTempCold += dT_cold * dt + noise * 0.5;
         
         // Mass flow with some variation
         const massFlow = this.baseMassFlow + (Math.random() - 0.5) * 0.01;
         
-        // Create "twin" predictions (slightly different from plant)
-        const twinTempHot = tempHot + (Math.random() - 0.5) * 0.2;
-        const twinTempCold = tempCold + (Math.random() - 0.5) * 0.2;
+        // Create "twin" predictions (slightly different from plant due to model uncertainty)
+        const modelUncertainty = 0.1; // 10% uncertainty
+        const twinTempHot = this.baseTempHot + (Math.random() - 0.5) * modelUncertainty * this.baseTempHot;
+        const twinTempCold = this.baseTempCold + (Math.random() - 0.5) * modelUncertainty * this.baseTempCold;
         
         // Calculate residuals
-        const residualHot = tempHot - twinTempHot;
-        const residualCold = tempCold - twinTempCold;
+        const residualHot = this.baseTempHot - twinTempHot;
+        const residualCold = this.baseTempCold - twinTempCold;
         const residualMassFlow = massFlow - this.baseMassFlow;
         
-        // Simulate anomaly detection
-        const anomalyThreshold = 2.0;
-        const isAnomaly = Math.abs(residualHot) > anomalyThreshold || 
-                         Math.abs(residualCold) > anomalyThreshold ||
-                         Math.abs(residualMassFlow) > 0.005;
+        // Simulate anomaly detection with more sophisticated logic
+        const hotThreshold = 2.0 + Math.abs(this.baseTempHot) * 0.01; // Adaptive threshold
+        const coldThreshold = 1.5 + Math.abs(this.baseTempCold) * 0.01;
+        const massFlowThreshold = 0.005;
+        
+        const isAnomaly = Math.abs(residualHot) > hotThreshold || 
+                         Math.abs(residualCold) > coldThreshold ||
+                         Math.abs(residualMassFlow) > massFlowThreshold;
+        
+        // Determine severity
+        let severity = 'NORMAL';
+        let confidence = 0.1;
+        
+        if (isAnomaly) {
+            const maxResidual = Math.max(Math.abs(residualHot), Math.abs(residualCold), Math.abs(residualMassFlow) * 100);
+            if (maxResidual > hotThreshold * 2) {
+                severity = 'CRITICAL';
+                confidence = 0.9;
+            } else if (maxResidual > hotThreshold * 1.5) {
+                severity = 'WARNING';
+                confidence = 0.7;
+            } else {
+                severity = 'WARNING';
+                confidence = 0.5;
+            }
+        }
         
         const data = {
             timestamp: this.timeStep,
-            plant_T_hot: tempHot,
-            plant_T_cold: tempCold,
+            plant_T_hot: this.baseTempHot,
+            plant_T_cold: this.baseTempCold,
             plant_m_dot: massFlow,
             twin_T_hot: twinTempHot,
             twin_T_cold: twinTempCold,
@@ -127,8 +159,8 @@ class DemoMode {
             residual_T_cold: residualCold,
             residual_m_dot: residualMassFlow,
             overall_anomaly: isAnomaly,
-            overall_severity: isAnomaly ? 'WARNING' : 'NORMAL',
-            anomaly_confidence: isAnomaly ? 0.8 : 0.1,
+            overall_severity: severity,
+            anomaly_confidence: confidence,
             anomaly_method: 'Demo Simulation'
         };
         
@@ -136,9 +168,26 @@ class DemoMode {
         this.updateRealTimeData(data);
         
         // Simulate occasional anomalies
-        if (Math.random() < 0.05 && this.timeStep > 10) { // 5% chance after 10 seconds
+        if (Math.random() < 0.03 && this.timeStep > 20) { // 3% chance after 20 seconds
             this.simulateAnomaly();
         }
+    }
+    
+    updateParametersFromUI() {
+        // Get current parameters from the UI sliders
+        const thermalCapElement = document.getElementById('thermal-capacitance');
+        const massFlowElement = document.getElementById('mass-flow');
+        const heatCapacityElement = document.getElementById('heat-capacity');
+        const heatExchangerElement = document.getElementById('heat-exchanger');
+        const heatInputElement = document.getElementById('heat-input');
+        const heatOutputElement = document.getElementById('heat-output');
+        
+        if (thermalCapElement) this.thermalCapacitance = parseFloat(thermalCapElement.value);
+        if (massFlowElement) this.baseMassFlow = parseFloat(massFlowElement.value);
+        if (heatCapacityElement) this.heatCapacity = parseFloat(heatCapacityElement.value);
+        if (heatExchangerElement) this.heatTransferCoeff = parseFloat(heatExchangerElement.value);
+        if (heatInputElement) this.heatInput = parseFloat(heatInputElement.value);
+        if (heatOutputElement) this.heatOutput = parseFloat(heatOutputElement.value);
     }
     
     simulateAnomaly() {
@@ -308,8 +357,51 @@ class DemoMode {
     
     async injectFault(faultData) {
         console.log('Demo: Injecting fault:', faultData);
-        this.simulateAnomaly();
+        this.simulateFault(faultData);
         return { status: 'success', message: `Demo fault ${faultData.type} injected` };
+    }
+    
+    simulateFault(faultData) {
+        const faultType = faultData.type || 'PUMP_DEGRADATION';
+        const startTime = faultData.start_time || 0;
+        const params = faultData.params || {};
+        
+        console.log(`Simulating fault: ${faultType} at time ${startTime}`);
+        
+        // Apply fault effects to the simulation
+        switch (faultType.toUpperCase()) {
+            case 'PUMP_DEGRADATION':
+                const reductionFactor = params.reduction_factor || 0.3;
+                this.baseMassFlow *= (1 - reductionFactor);
+                this.showNotification(`Pump degradation: ${(reductionFactor * 100).toFixed(0)}% flow reduction`, 'warning');
+                break;
+                
+            case 'HEAT_EXCHANGER_FOULING':
+                const foulingFactor = params.fouling_factor || 0.5;
+                this.heatTransferCoeff *= (1 - foulingFactor);
+                this.showNotification(`Heat exchanger fouling: ${(foulingFactor * 100).toFixed(0)}% efficiency loss`, 'warning');
+                break;
+                
+            case 'SENSOR_BIAS':
+                const biasAmount = params.bias_amount || 5.0;
+                this.baseTempHot += biasAmount;
+                this.showNotification(`Sensor bias: +${biasAmount}K temperature offset`, 'warning');
+                break;
+                
+            case 'MASS_FLOW_REDUCTION':
+                const flowReduction = params.flow_reduction || 0.2;
+                this.baseMassFlow *= (1 - flowReduction);
+                this.showNotification(`Mass flow reduction: ${(flowReduction * 100).toFixed(0)}% flow decrease`, 'warning');
+                break;
+                
+            default:
+                this.showNotification(`Unknown fault type: ${faultType}`, 'error');
+        }
+        
+        // Trigger an immediate anomaly
+        setTimeout(() => {
+            this.simulateAnomaly();
+        }, 1000);
     }
 }
 
