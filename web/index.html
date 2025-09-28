@@ -36,24 +36,34 @@
                         <h3>System Parameters</h3>
                         <div class="controls-grid">
                             <div class="control-group">
-                                <label for="heatInput">Heat Input (W):</label>
-                                <input type="range" id="heatInput" min="500" max="3000" value="1000" step="50">
-                                <span id="heatInputValue">1000 W</span>
+                                <label for="thermal-capacitance">Thermal Capacitance (J/K):</label>
+                                <input type="range" id="thermal-capacitance" min="1000" max="10000" value="1000" step="100">
+                                <span id="thermal-capacitance-value">1000 J/K</span>
                             </div>
                             <div class="control-group">
-                                <label for="massFlow">Mass Flow Rate (kg/s):</label>
-                                <input type="range" id="massFlow" min="0.01" max="1.0" value="0.1" step="0.01">
-                                <span id="massFlowValue">0.1 kg/s</span>
+                                <label for="mass-flow">Mass Flow Rate (kg/s):</label>
+                                <input type="range" id="mass-flow" min="0.01" max="1.0" value="0.1" step="0.01">
+                                <span id="mass-flow-value">0.1 kg/s</span>
                             </div>
                             <div class="control-group">
-                                <label for="heatCapacity">Heat Capacity (J/K):</label>
-                                <input type="range" id="heatCapacity" min="1000" max="10000" value="4180" step="100">
-                                <span id="heatCapacityValue">4180 J/K</span>
+                                <label for="heat-capacity">Heat Capacity (J/K):</label>
+                                <input type="range" id="heat-capacity" min="1000" max="10000" value="4180" step="100">
+                                <span id="heat-capacity-value">4180 J/K</span>
                             </div>
                             <div class="control-group">
-                                <label for="heatExchangerUA">Heat Exchanger UA (W/K):</label>
-                                <input type="range" id="heatExchangerUA" min="10" max="500" value="50" step="5">
-                                <span id="heatExchangerUAValue">50 W/K</span>
+                                <label for="heat-exchanger">Heat Exchanger UA (W/K):</label>
+                                <input type="range" id="heat-exchanger" min="10" max="500" value="50" step="5">
+                                <span id="heat-exchanger-value">50 W/K</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="heat-input">Heat Input (W):</label>
+                                <input type="range" id="heat-input" min="500" max="3000" value="1000" step="50">
+                                <span id="heat-input-value">1000 W</span>
+                            </div>
+                            <div class="control-group">
+                                <label for="heat-output">Heat Output (W):</label>
+                                <input type="range" id="heat-output" min="0" max="2000" value="1000" step="50">
+                                <span id="heat-output-value">1000 W</span>
                             </div>
                         </div>
                     </div>
@@ -102,13 +112,18 @@
                 </div>
                 
                 <div class="action-buttons">
-                    <button id="runSimulation" class="btn btn-primary">Run Simulation</button>
-                    <button id="stopSimulation" class="btn btn-secondary" disabled>Stop Simulation</button>
+                    <button id="start-simulation" class="btn btn-primary">Start Simulation</button>
+                    <button id="stop-simulation" class="btn btn-secondary" disabled>Stop Simulation</button>
+                    <button id="reset-simulation" class="btn btn-warning">Reset</button>
                     <button id="exportData" class="btn btn-info">Export Data</button>
                 </div>
                 
                 <div class="chart-container">
-                    <canvas id="simulationChart"></canvas>
+                    <canvas id="temperature-chart"></canvas>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="residuals-chart"></canvas>
                 </div>
                 
                 <div class="simulation-results" id="simulationResults" style="display: none;">
@@ -158,23 +173,53 @@
                 <div class="status-grid">
                     <div class="status-card">
                         <h3>Plant Temperature (Hot)</h3>
-                        <div class="metric" id="plantTempHot">-- K</div>
+                        <div class="metric" id="plant-temp-hot">-- K</div>
                         <div class="trend" id="plantTempHotTrend">--</div>
                     </div>
                     <div class="status-card">
+                        <h3>Plant Temperature (Cold)</h3>
+                        <div class="metric" id="plant-temp-cold">-- K</div>
+                        <div class="trend" id="plantTempColdTrend">--</div>
+                    </div>
+                    <div class="status-card">
                         <h3>Twin Temperature (Hot)</h3>
-                        <div class="metric" id="twinTempHot">-- K</div>
+                        <div class="metric" id="twin-temp-hot">-- K</div>
                         <div class="trend" id="twinTempHotTrend">--</div>
                     </div>
                     <div class="status-card">
-                        <h3>Residual</h3>
-                        <div class="metric" id="residual">-- K</div>
-                        <div class="trend" id="residualTrend">--</div>
+                        <h3>Twin Temperature (Cold)</h3>
+                        <div class="metric" id="twin-temp-cold">-- K</div>
+                        <div class="trend" id="twinTempColdTrend">--</div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Mass Flow</h3>
+                        <div class="metric" id="mass-flow">-- kg/s</div>
+                        <div class="trend" id="massFlowTrend">--</div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Residual (Hot)</h3>
+                        <div class="metric" id="residual-temp-hot">-- K</div>
+                        <div class="trend" id="residualHotTrend">--</div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Residual (Cold)</h3>
+                        <div class="metric" id="residual-temp-cold">-- K</div>
+                        <div class="trend" id="residualColdTrend">--</div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Residual (Mass Flow)</h3>
+                        <div class="metric" id="residual-mass-flow">-- kg/s</div>
+                        <div class="trend" id="residualMassFlowTrend">--</div>
                     </div>
                     <div class="status-card">
                         <h3>Anomaly Status</h3>
-                        <div class="metric" id="anomalyStatus">Normal</div>
-                        <div class="confidence" id="anomalyConfidence">--</div>
+                        <div class="metric" id="anomaly-status">Normal</div>
+                        <div class="confidence" id="anomaly-confidence">--</div>
+                    </div>
+                    <div class="status-card">
+                        <h3>Anomaly Severity</h3>
+                        <div class="metric" id="anomaly-severity">Normal</div>
+                        <div class="confidence" id="anomaly-method">--</div>
                     </div>
                 </div>
                 
@@ -184,7 +229,7 @@
                 
                 <div class="anomaly-log" id="anomalyLog">
                     <h3>Anomaly Log</h3>
-                    <div class="log-entries" id="logEntries">
+                    <div class="log-entries" id="anomaly-list">
                         <p class="log-entry">No anomalies detected</p>
                     </div>
                 </div>

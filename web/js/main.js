@@ -113,10 +113,10 @@ class ThermalCoolingApp {
         }
     }
 
-    updateConnectionStatus(connected) {
-        const statusElement = document.getElementById('connection-status');
+    updateConnectionStatus(connected, mode = 'Connected') {
+        const statusElement = document.getElementById('connectionStatus');
         if (statusElement) {
-            statusElement.textContent = connected ? 'Connected' : 'Disconnected';
+            statusElement.textContent = connected ? mode : 'Disconnected';
             statusElement.className = connected ? 'status-connected' : 'status-disconnected';
         }
     }
@@ -264,17 +264,27 @@ class ThermalCoolingApp {
         });
         
         // Simulation buttons
-        document.getElementById('start-simulation').addEventListener('click', () => {
-            this.startSimulation();
-        });
+        const startBtn = document.getElementById('start-simulation');
+        const stopBtn = document.getElementById('stop-simulation');
+        const resetBtn = document.getElementById('reset-simulation');
         
-        document.getElementById('stop-simulation').addEventListener('click', () => {
-            this.stopSimulation();
-        });
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                this.startSimulation();
+            });
+        }
         
-        document.getElementById('reset-simulation').addEventListener('click', () => {
-            this.resetSimulation();
-        });
+        if (stopBtn) {
+            stopBtn.addEventListener('click', () => {
+                this.stopSimulation();
+            });
+        }
+        
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => {
+                this.resetSimulation();
+            });
+        }
         
         // Documentation navigation
         document.querySelectorAll('.doc-nav-btn').forEach(btn => {
@@ -286,16 +296,22 @@ class ThermalCoolingApp {
     
     switchTab(tabName) {
         // Update navigation
-        document.querySelectorAll('.nav-btn').forEach(btn => {
+        document.querySelectorAll('.tab-button').forEach(btn => {
             btn.classList.remove('active');
         });
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        const activeBtn = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+        }
         
         // Update content
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.remove('active');
         });
-        document.getElementById(tabName).classList.add('active');
+        const activeContent = document.getElementById(tabName);
+        if (activeContent) {
+            activeContent.classList.add('active');
+        }
         
         this.currentTab = tabName;
         
@@ -642,6 +658,13 @@ class ThermalCoolingApp {
     
     formatNumber(value, decimals = 2) {
         return parseFloat(value).toFixed(decimals);
+    }
+}
+
+// Global function for tab switching (called from HTML)
+function showTab(tabName) {
+    if (window.thermalApp) {
+        window.thermalApp.switchTab(tabName);
     }
 }
 
