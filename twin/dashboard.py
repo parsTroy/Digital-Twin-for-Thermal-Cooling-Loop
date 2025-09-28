@@ -31,6 +31,8 @@ from twin.model import (
 from twin.plant_simulator import PlantSimulator, FaultType
 from twin.digital_twin import DigitalTwinManager, create_digital_twin_manager
 from twin.detector import DetectionMethod, AnomalyType
+from twin.enhanced_detector import EnhancedAnomalyDetector, create_enhanced_detector
+from twin.ml_detector import MLAnomalyDetector, create_ml_detector
 
 
 def setup_page():
@@ -437,7 +439,7 @@ def main():
     params = create_sidebar()
     
     # Main content
-    tab1, tab2, tab3, tab4 = st.tabs(["Digital Twin", "Plant Simulator", "Real-time Monitoring", "Analysis"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["Digital Twin", "Plant Simulator", "Real-time Monitoring", "ML Detection", "Analysis"])
     
     with tab1:
         st.header("Digital Twin Simulation")
@@ -713,6 +715,323 @@ def main():
             st.info("Click 'Start Real-time Monitoring' to begin monitoring the digital twin.")
     
     with tab4:
+        st.header("Advanced ML Anomaly Detection")
+        
+        # ML Detection Configuration
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Detection Configuration")
+            
+            # Traditional methods
+            traditional_methods = st.multiselect(
+                "Traditional Methods",
+                ["Residual Threshold", "Rolling Z-Score", "Isolation Forest", "One-Class SVM", "SPC", "CUSUM"],
+                default=["Residual Threshold", "Rolling Z-Score", "Isolation Forest"]
+            )
+            
+            # ML features
+            ml_enabled = st.checkbox("Enable ML Detection", value=True)
+            feature_engineering = st.checkbox("Enable Feature Engineering", value=True)
+            ensemble_voting = st.checkbox("Enable Ensemble Voting", value=True)
+            adaptive_thresholds = st.checkbox("Enable Adaptive Thresholds", value=True)
+            
+        with col2:
+            st.subheader("ML Model Configuration")
+            
+            # Model parameters
+            auto_tuning = st.checkbox("Enable Auto-tuning", value=True)
+            ensemble_methods = st.checkbox("Enable Ensemble Methods", value=True)
+            model_persistence = st.checkbox("Enable Model Persistence", value=True)
+            
+            # Training parameters
+            min_training_samples = st.slider("Min Training Samples", 50, 500, 100)
+            test_size = st.slider("Test Size", 0.1, 0.5, 0.2)
+            cv_folds = st.slider("CV Folds", 3, 10, 5)
+        
+        # Convert detection methods
+        method_map = {
+            "Residual Threshold": DetectionMethod.RESIDUAL_THRESHOLD,
+            "Rolling Z-Score": DetectionMethod.ROLLING_Z_SCORE,
+            "Isolation Forest": DetectionMethod.ISOLATION_FOREST,
+            "One-Class SVM": DetectionMethod.ONE_CLASS_SVM,
+            "SPC": DetectionMethod.STATISTICAL_PROCESS_CONTROL,
+            "CUSUM": DetectionMethod.CUSUM
+        }
+        
+        selected_traditional_methods = [method_map[m] for m in traditional_methods]
+        
+        # Initialize session state for ML detector
+        if 'ml_detector' not in st.session_state:
+            st.session_state.ml_detector = None
+        if 'enhanced_detector' not in st.session_state:
+            st.session_state.enhanced_detector = None
+        if 'ml_training_data' not in st.session_state:
+            st.session_state.ml_training_data = []
+        if 'ml_anomaly_count' not in st.session_state:
+            st.session_state.ml_anomaly_count = 0
+        
+        # ML Detector Controls
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            if st.button("Create ML Detector", type="primary"):
+                # Create enhanced detector
+                enhanced_detector = create_enhanced_detector(
+                    traditional_methods=selected_traditional_methods,
+                    ml_enabled=ml_enabled,
+                    adaptive_thresholds=adaptive_thresholds,
+                    ensemble_voting=ensemble_voting
+                )
+                
+                # Create ML detector
+                ml_detector = create_ml_detector(
+                    feature_engineering=feature_engineering,
+                    auto_tuning=auto_tuning,
+                    ensemble_methods=ensemble_methods
+                )
+                
+                st.session_state.enhanced_detector = enhanced_detector
+                st.session_state.ml_detector = ml_detector
+                st.success("ML detectors created successfully!")
+        
+        with col2:
+            if st.button("Generate Training Data"):
+                if st.session_state.ml_detector:
+                    # Generate synthetic training data
+                    np.random.seed(42)
+                    training_data = []
+                    
+                    # Normal data
+                    for _ in range(100):
+                        training_data.append({
+                            'T_hot': np.random.normal(0, 1.0),
+                            'T_cold': np.random.normal(0, 0.8),
+                            'm_dot': np.random.normal(0, 0.1)
+                        })
+                    
+                    # Anomalous data
+                    for _ in range(25):
+                        training_data.append({
+                            'T_hot': np.random.normal(0, 4.0),
+                            'T_cold': np.random.normal(0, 3.0),
+                            'm_dot': np.random.normal(0, 0.3)
+                        })
+                    
+                    st.session_state.ml_training_data = training_data
+                    st.success(f"Generated {len(training_data)} training samples!")
+                else:
+                    st.error("Please create ML detector first!")
+        
+        with col3:
+            if st.button("Train Models"):
+                if st.session_state.ml_detector and st.session_state.ml_training_data:
+                    with st.spinner("Training ML models..."):
+                        # Train enhanced detector
+                        enhanced_results = st.session_state.enhanced_detector.train_ml_models(st.session_state.ml_training_data)
+                        
+                        # Train ML detector
+                        ml_results = st.session_state.ml_detector.train_models()
+                        
+                        st.session_state.ml_training_results = {
+                            'enhanced': enhanced_results,
+                            'ml': ml_results
+                        }
+                        st.success("Models trained successfully!")
+                else:
+                    st.error("Please generate training data first!")
+        
+        with col4:
+            if st.button("Reset Detectors"):
+                st.session_state.ml_detector = None
+                st.session_state.enhanced_detector = None
+                st.session_state.ml_training_data = []
+                st.session_state.ml_anomaly_count = 0
+                st.success("Detectors reset!")
+        
+        # Display detector status
+        if st.session_state.enhanced_detector:
+            st.subheader("Detector Status")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.metric("Enhanced Detector", "Ready" if st.session_state.enhanced_detector.is_trained else "Not Trained")
+            
+            with col2:
+                if st.session_state.ml_detector:
+                    st.metric("ML Detector", "Ready" if st.session_state.ml_detector.is_trained else "Not Trained")
+                else:
+                    st.metric("ML Detector", "Not Created")
+            
+            with col3:
+                st.metric("Training Data", f"{len(st.session_state.ml_training_data)} samples")
+        
+        # ML Detection Testing
+        if st.session_state.enhanced_detector and st.session_state.enhanced_detector.is_trained:
+            st.subheader("ML Detection Testing")
+            
+            # Test scenarios
+            test_scenarios = {
+                "Normal Operation": {'T_hot': 0.5, 'T_cold': 0.3, 'm_dot': 0.05},
+                "Temperature Anomaly": {'T_hot': 8.0, 'T_cold': 6.0, 'm_dot': 0.1},
+                "Flow Rate Anomaly": {'T_hot': 1.0, 'T_cold': 0.8, 'm_dot': 0.8},
+                "Multiple Anomalies": {'T_hot': 10.0, 'T_cold': 8.0, 'm_dot': 0.9}
+            }
+            
+            selected_scenario = st.selectbox("Select Test Scenario", list(test_scenarios.keys()))
+            
+            if st.button("Test Detection"):
+                test_residuals = test_scenarios[selected_scenario]
+                
+                # Test with enhanced detector
+                result = st.session_state.enhanced_detector.detect_anomalies(test_residuals, use_ensemble=True)
+                
+                # Display results
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("Anomaly Detected", "Yes" if result['final_decision']['is_anomaly'] else "No")
+                
+                with col2:
+                    st.metric("Confidence", f"{result['final_decision']['confidence']:.3f}")
+                
+                with col3:
+                    st.metric("Severity", result['final_decision']['severity'].value)
+                
+                with col4:
+                    st.metric("Method Used", result['final_decision']['method_used'])
+                
+                # Show detailed results
+                with st.expander("Detailed Results"):
+                    st.json({
+                        "residuals": test_residuals,
+                        "traditional_results": result.get('traditional_results', {}),
+                        "ml_results": result.get('ml_results', {}),
+                        "ensemble_result": result.get('ensemble_result', {}),
+                        "final_decision": result['final_decision']
+                    })
+        
+        # Model Performance Analysis
+        if 'ml_training_results' in st.session_state:
+            st.subheader("Model Performance Analysis")
+            
+            results = st.session_state.ml_training_results
+            
+            # Enhanced detector results
+            if 'enhanced' in results:
+                st.write("**Enhanced Detector Results:**")
+                enhanced_results = results['enhanced']
+                
+                if isinstance(enhanced_results, dict) and 'error' not in enhanced_results:
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write("**Traditional Methods:**")
+                        for method, perf in enhanced_results.items():
+                            if isinstance(perf, dict) and 'test_accuracy' in perf:
+                                st.write(f"- {method}: {perf['test_accuracy']:.3f}")
+                    
+                    with col2:
+                        st.write("**ML Methods:**")
+                        if 'ml_performance' in enhanced_results:
+                            ml_perf = enhanced_results['ml_performance']
+                            for method, perf in ml_perf.items():
+                                if isinstance(perf, dict) and 'test_accuracy' in perf:
+                                    st.write(f"- {method}: {perf['test_accuracy']:.3f}")
+            
+            # ML detector results
+            if 'ml' in results:
+                st.write("**ML Detector Results:**")
+                ml_results = results['ml']
+                
+                if isinstance(ml_results, dict):
+                    for method, perf in ml_results.items():
+                        if isinstance(perf, dict) and 'test_accuracy' in perf:
+                            st.write(f"- {method}: {perf['test_accuracy']:.3f}")
+        
+        # Feature Importance Analysis
+        if st.session_state.ml_detector and st.session_state.ml_detector.is_trained:
+            st.subheader("Feature Importance Analysis")
+            
+            if st.button("Show Feature Importance"):
+                importance = st.session_state.ml_detector.get_feature_importance('random_forest')
+                
+                if importance:
+                    # Create feature importance plot
+                    features = list(importance.keys())[:10]  # Top 10 features
+                    importances = list(importance.values())[:10]
+                    
+                    fig = go.Figure(data=[
+                        go.Bar(x=features, y=importances, name='Feature Importance')
+                    ])
+                    
+                    fig.update_layout(
+                        title="Top 10 Most Important Features",
+                        xaxis_title="Features",
+                        yaxis_title="Importance",
+                        height=400
+                    )
+                    
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Show feature importance table
+                    importance_df = pd.DataFrame(list(importance.items()), columns=['Feature', 'Importance'])
+                    st.dataframe(importance_df.head(20), use_container_width=True)
+                else:
+                    st.warning("Feature importance not available for the selected model.")
+        
+        # Real-time ML Monitoring
+        if st.session_state.enhanced_detector and st.session_state.enhanced_detector.is_trained:
+            st.subheader("Real-time ML Monitoring")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if st.button("Start ML Monitoring"):
+                    st.session_state.ml_monitoring_active = True
+                    st.success("ML monitoring started!")
+            
+            with col2:
+                if st.button("Stop ML Monitoring"):
+                    st.session_state.ml_monitoring_active = False
+                    st.success("ML monitoring stopped!")
+            
+            if st.session_state.get('ml_monitoring_active', False):
+                # Simulate real-time monitoring
+                if st.button("Simulate Data Point"):
+                    # Generate random residuals
+                    np.random.seed(int(time.time()))
+                    residuals = {
+                        'T_hot': np.random.normal(0, 2.0),
+                        'T_cold': np.random.normal(0, 1.5),
+                        'm_dot': np.random.normal(0, 0.2)
+                    }
+                    
+                    # Detect anomalies
+                    result = st.session_state.enhanced_detector.detect_anomalies(residuals, use_ensemble=True)
+                    
+                    # Update counter
+                    if result['final_decision']['is_anomaly']:
+                        st.session_state.ml_anomaly_count += 1
+                    
+                    # Display current status
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("Current Residuals", f"T_hot: {residuals['T_hot']:.2f}")
+                    
+                    with col2:
+                        st.metric("Anomaly Detected", "Yes" if result['final_decision']['is_anomaly'] else "No")
+                    
+                    with col3:
+                        st.metric("Total Anomalies", st.session_state.ml_anomaly_count)
+                    
+                    # Show detection details
+                    with st.expander("Detection Details"):
+                        st.json(result['final_decision'])
+    
+    with tab5:
         st.header("System Analysis")
         
         st.subheader("Parameter Sensitivity")
