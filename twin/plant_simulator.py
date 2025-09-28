@@ -38,7 +38,8 @@ class PlantSimulator:
     def __init__(self, 
                  base_params: Dict[str, float],
                  noise_level: float = 0.01,
-                 sample_rate: float = 1.0):
+                 sample_rate: float = 1.0,
+                 sensor_characteristics: Optional[Dict] = None):
         """
         Initialize the plant simulator.
         
@@ -50,16 +51,25 @@ class PlantSimulator:
             Standard deviation of Gaussian noise (relative to signal)
         sample_rate : float
             Sampling rate [Hz]
+        sensor_characteristics : dict, optional
+            Sensor-specific characteristics including:
+            - 'T_hot': {'noise_std': float, 'bias': float, 'drift_rate': float}
+            - 'T_cold': {'noise_std': float, 'bias': float, 'drift_rate': float}
+            - 'm_dot': {'noise_std': float, 'bias': float, 'drift_rate': float}
         """
         self.base_params = base_params.copy()
         self.noise_level = noise_level
         self.sample_rate = sample_rate
         self.dt = 1.0 / sample_rate
         
+        # Sensor characteristics
+        self.sensor_characteristics = sensor_characteristics or self._create_default_sensor_characteristics()
+        
         # Fault state
         self.current_fault = FaultType.NONE
         self.fault_start_time = None
         self.fault_parameters = {}
+        self.active_faults = []  # Support multiple concurrent faults
         
         # Sensor bias and drift
         self.sensor_bias = {'T_hot': 0.0, 'T_cold': 0.0, 'm_dot': 0.0}
@@ -69,7 +79,36 @@ class PlantSimulator:
         self.sensor_data = []
         self.time_history = []
         
+        # Random number generator for reproducible results
+        self.rng = np.random.RandomState(42)
+        
         logger.info("Plant simulator initialized successfully")
+    
+    def _create_default_sensor_characteristics(self) -> Dict:
+        """Create default sensor characteristics."""
+        return {
+            'T_hot': {
+                'noise_std': 0.5,  # K
+                'bias': 0.0,  # K
+                'drift_rate': 0.001,  # K/s
+                'resolution': 0.1,  # K
+                'range': (200, 500)  # K
+            },
+            'T_cold': {
+                'noise_std': 0.3,  # K
+                'bias': 0.0,  # K
+                'drift_rate': 0.0005,  # K/s
+                'resolution': 0.1,  # K
+                'range': (200, 400)  # K
+            },
+            'm_dot': {
+                'noise_std': 0.001,  # kg/s
+                'bias': 0.0,  # kg/s
+                'drift_rate': 0.00001,  # kg/s^2
+                'resolution': 0.0001,  # kg/s
+                'range': (0.01, 0.5)  # kg/s
+            }
+        }
     
     def inject_fault(self, 
                     fault_type: FaultType, 
@@ -164,34 +203,76 @@ class PlantSimulator:
         tuple
             Noisy measurements (T_hot_noisy, T_cold_noisy, m_dot_noisy)
         """
-        # Base noise level
-        noise_level = self.noise_level
-        
-        # Increase noise for sensor noise fault
-        if (self.current_fault == FaultType.SENSOR_NOISE_INCREASE and 
-            t >= self.fault_start_time):
-            noise_multiplier = self.fault_parameters.get('noise_multiplier', 3.0)
-            noise_level *= noise_multiplier
-        
-        # Add Gaussian noise
-        T_hot_noisy = T_hot + np.random.normal(0, noise_level * T_hot)
-        T_cold_noisy = T_cold + np.random.normal(0, noise_level * T_cold)
-        m_dot_noisy = m_dot + np.random.normal(0, noise_level * m_dot)
-        
-        # Add sensor bias
-        if (self.current_fault == FaultType.SENSOR_BIAS and 
-            t >= self.fault_start_time):
-            bias_magnitude = self.fault_parameters.get('bias_magnitude', 5.0)
-            T_hot_noisy += bias_magnitude
-            T_cold_noisy += bias_magnitude
-        
-        # Add sensor drift
-        drift_rate = 0.001  # K/s
-        T_hot_noisy += self.sensor_drift['T_hot'] * t
-        T_cold_noisy += self.sensor_drift['T_cold'] * t
-        m_dot_noisy += self.sensor_drift['m_dot'] * t
+        # Apply sensor-specific noise and characteristics
+        T_hot_noisy = self._apply_sensor_characteristics('T_hot', T_hot, t)
+        T_cold_noisy = self._apply_sensor_characteristics('T_cold', T_cold, t)
+        m_dot_noisy = self._apply_sensor_characteristics('m_dot', m_dot, t)
         
         return T_hot_noisy, T_cold_noisy, m_dot_noisy
+    
+    def _apply_sensor_characteristics(self, sensor_name: str, true_value: float, t: float) -> float:
+        """
+        Apply sensor-specific characteristics including noise, bias, drift, and quantization.
+        
+        Parameters:
+        -----------
+        sensor_name : str
+            Name of the sensor ('T_hot', 'T_cold', 'm_dot')
+        true_value : float
+            True value of the measurement
+        t : float
+            Current time [s]
+            
+        Returns:
+        --------
+        float
+            Processed sensor reading
+        """
+        if sensor_name not in self.sensor_characteristics:
+            return true_value
+        
+        char = self.sensor_characteristics[sensor_name]
+        
+        # Start with true value
+        noisy_value = true_value
+        
+        # Add Gaussian noise
+        noise_std = char['noise_std']
+        
+        # Check for sensor noise fault
+        for fault in self.active_faults:
+            if (fault['type'] == FaultType.SENSOR_NOISE_INCREASE and 
+                t >= fault['start_time']):
+                noise_multiplier = fault['parameters'].get('noise_multiplier', 3.0)
+                noise_std *= noise_multiplier
+        
+        noisy_value += self.rng.normal(0, noise_std)
+        
+        # Add sensor bias
+        bias = char['bias']
+        
+        # Check for sensor bias fault
+        for fault in self.active_faults:
+            if (fault['type'] == FaultType.SENSOR_BIAS and 
+                t >= fault['start_time']):
+                bias_magnitude = fault['parameters'].get('bias_magnitude', 5.0)
+                bias += bias_magnitude
+        
+        noisy_value += bias
+        
+        # Add sensor drift
+        drift_rate = char['drift_rate']
+        noisy_value += drift_rate * t
+        
+        # Apply quantization (simulate digital sensor)
+        resolution = char['resolution']
+        noisy_value = round(noisy_value / resolution) * resolution
+        
+        # Apply range limits
+        min_val, max_val = char['range']
+        noisy_value = np.clip(noisy_value, min_val, max_val)
+        
+        return noisy_value
     
     def simulate_sensor_data(self, 
                            twin_model,

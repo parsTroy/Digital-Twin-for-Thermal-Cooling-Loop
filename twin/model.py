@@ -100,7 +100,8 @@ class ThermalCoolingTwin:
                  y0: np.ndarray,
                  t_eval: Optional[np.ndarray] = None,
                  rtol: float = 1e-6,
-                 atol: float = 1e-9) -> Dict[str, np.ndarray]:
+                 atol: float = 1e-9,
+                 method: str = 'RK45') -> Dict[str, np.ndarray]:
         """
         Simulate the thermal cooling loop system.
         
@@ -116,6 +117,8 @@ class ThermalCoolingTwin:
             Relative tolerance for ODE solver
         atol : float
             Absolute tolerance for ODE solver
+        method : str
+            ODE solver method ('RK45', 'RK23', 'DOP853', 'Radau', 'BDF', 'LSODA')
             
         Returns:
         --------
@@ -126,6 +129,8 @@ class ThermalCoolingTwin:
             - 'T_cold': cold temperature [K]
             - 'success': solver success flag
             - 'message': solver message
+            - 'nfev': number of function evaluations
+            - 'njev': number of jacobian evaluations
         """
         try:
             # Solve ODE system
@@ -136,7 +141,7 @@ class ThermalCoolingTwin:
                 t_eval=t_eval,
                 rtol=rtol,
                 atol=atol,
-                method='RK45'
+                method=method
             )
             
             if not sol.success:
@@ -148,7 +153,9 @@ class ThermalCoolingTwin:
                 'T_hot': sol.y[0],
                 'T_cold': sol.y[1],
                 'success': sol.success,
-                'message': sol.message
+                'message': sol.message,
+                'nfev': sol.nfev,
+                'njev': sol.njev
             }
             
             logger.info(f"Simulation completed: {len(sol.t)} time points")
@@ -265,5 +272,172 @@ def create_time_varying_heat_input(base_power: float = 1000.0,
     """
     def Q_in(t):
         return base_power + amplitude * np.sin(2 * np.pi * frequency * t)
+    
+    return Q_in
+
+
+def create_step_heat_input(base_power: float = 1000.0,
+                          step_power: float = 1500.0,
+                          step_time: float = 50.0) -> Callable[[float], float]:
+    """
+    Create a step heat input function.
+    
+    Parameters:
+    -----------
+    base_power : float
+        Initial heat input power [W]
+    step_power : float
+        Final heat input power [W]
+    step_time : float
+        Time when step occurs [s]
+        
+    Returns:
+    --------
+    callable
+        Heat input function Q_in(t)
+    """
+    def Q_in(t):
+        return step_power if t >= step_time else base_power
+    
+    return Q_in
+
+
+def create_ramp_heat_input(base_power: float = 1000.0,
+                          final_power: float = 1500.0,
+                          ramp_start: float = 20.0,
+                          ramp_duration: float = 30.0) -> Callable[[float], float]:
+    """
+    Create a ramp heat input function.
+    
+    Parameters:
+    -----------
+    base_power : float
+        Initial heat input power [W]
+    final_power : float
+        Final heat input power [W]
+    ramp_start : float
+        Time when ramp starts [s]
+    ramp_duration : float
+        Duration of ramp [s]
+        
+    Returns:
+    --------
+    callable
+        Heat input function Q_in(t)
+    """
+    def Q_in(t):
+        if t < ramp_start:
+            return base_power
+        elif t < ramp_start + ramp_duration:
+            # Linear ramp
+            progress = (t - ramp_start) / ramp_duration
+            return base_power + progress * (final_power - base_power)
+        else:
+            return final_power
+    
+    return Q_in
+
+
+def create_pulse_heat_input(base_power: float = 1000.0,
+                           pulse_power: float = 2000.0,
+                           pulse_start: float = 30.0,
+                           pulse_duration: float = 10.0) -> Callable[[float], float]:
+    """
+    Create a pulse heat input function.
+    
+    Parameters:
+    -----------
+    base_power : float
+        Base heat input power [W]
+    pulse_power : float
+        Pulse heat input power [W]
+    pulse_start : float
+        Time when pulse starts [s]
+    pulse_duration : float
+        Duration of pulse [s]
+        
+    Returns:
+    --------
+    callable
+        Heat input function Q_in(t)
+    """
+    def Q_in(t):
+        if pulse_start <= t <= pulse_start + pulse_duration:
+            return pulse_power
+        else:
+            return base_power
+    
+    return Q_in
+
+
+def create_complex_heat_input(base_power: float = 1000.0,
+                             components: list = None) -> Callable[[float], float]:
+    """
+    Create a complex heat input function with multiple components.
+    
+    Parameters:
+    -----------
+    base_power : float
+        Base heat input power [W]
+    components : list
+        List of component dictionaries with keys:
+        - 'type': 'sin', 'cos', 'step', 'ramp', 'pulse'
+        - 'amplitude': amplitude [W]
+        - 'frequency': frequency [Hz] (for sin/cos)
+        - 'start_time': start time [s]
+        - 'duration': duration [s] (for ramp/pulse)
+        - 'end_power': end power [W] (for ramp)
+        
+    Returns:
+    --------
+    callable
+        Heat input function Q_in(t)
+    """
+    if components is None:
+        components = [
+            {'type': 'sin', 'amplitude': 100, 'frequency': 0.05},
+            {'type': 'step', 'amplitude': 200, 'start_time': 50},
+            {'type': 'pulse', 'amplitude': 500, 'start_time': 100, 'duration': 20}
+        ]
+    
+    def Q_in(t):
+        total = base_power
+        
+        for comp in components:
+            comp_type = comp['type']
+            amplitude = comp['amplitude']
+            
+            if comp_type == 'sin':
+                frequency = comp.get('frequency', 0.1)
+                total += amplitude * np.sin(2 * np.pi * frequency * t)
+                
+            elif comp_type == 'cos':
+                frequency = comp.get('frequency', 0.1)
+                total += amplitude * np.cos(2 * np.pi * frequency * t)
+                
+            elif comp_type == 'step':
+                start_time = comp.get('start_time', 0)
+                if t >= start_time:
+                    total += amplitude
+                    
+            elif comp_type == 'ramp':
+                start_time = comp.get('start_time', 0)
+                duration = comp.get('duration', 10)
+                end_power = comp.get('end_power', base_power + amplitude)
+                
+                if t >= start_time and t <= start_time + duration:
+                    progress = (t - start_time) / duration
+                    total += progress * amplitude
+                elif t > start_time + duration:
+                    total += amplitude
+                    
+            elif comp_type == 'pulse':
+                start_time = comp.get('start_time', 0)
+                duration = comp.get('duration', 5)
+                
+                if start_time <= t <= start_time + duration:
+                    total += amplitude
+        
+        return total
     
     return Q_in
