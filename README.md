@@ -15,31 +15,31 @@ This project implements a complete digital twin solution for closed-loop thermal
 
 ## Key Features
 
-### 🔬 **Digital Twin Core**
+### **Digital Twin Core**
 - Lumped capacitance thermal model with ODE integration
 - Real-time plant simulator with sensor noise modeling
 - Residual-based anomaly detection
 - Multi-method ensemble detection
 
-### 🤖 **Machine Learning**
+### **Machine Learning**
 - **4 ML Algorithms**: Isolation Forest, One-Class SVM, MLP, Random Forest
 - **Feature Engineering**: 50+ engineered features from raw residuals
 - **Ensemble Learning**: Adaptive voting weights and method combination
 - **Hyperparameter Tuning**: Automated model optimization
 
-### 📊 **Advanced Detection**
+### **Advanced Detection**
 - **7 Traditional Methods**: Residual threshold, Z-score, rolling Z-score, SPC, CUSUM
 - **Adaptive Learning**: Real-time threshold adjustment
 - **Confidence Scoring**: Multi-level confidence assessment
 - **Severity Classification**: Normal, Warning, Critical, Fault levels
 
-### 🖥️ **Interactive Interfaces**
+### **Interactive Interfaces**
 - **Streamlit Dashboard**: Full-featured web application
 - **Web Client**: HTML/CSS/JavaScript interface
 - **Real-time Monitoring**: Live data visualization
 - **Analysis Tools**: Performance metrics and comparison
 
-### 🧪 **Testing & Validation**
+### **Testing & Validation**
 - **Fault Injection**: 6 different fault types
 - **Comprehensive Testing**: Unit tests for all components
 - **Performance Analysis**: Statistical validation and comparison
@@ -308,4 +308,4 @@ For questions, issues, or contributions:
 
 ---
 
-**Built with ❤️ for thermal management and anomaly detection**
+**Built for thermal management and anomaly detection**
