@@ -1,0 +1,74 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Set permissions for the workflow
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Build project
+      run: |
+        # Create build directory
+        mkdir -p build
+        
+        # Copy web files
+        cp -r web/* build/
+        
+        # Copy Python modules for reference
+        mkdir -p build/twin
+        cp -r twin/* build/twin/
+        
+        # Copy tests and examples
+        cp -r tests build/ 2>/dev/null || true
+        cp -r examples build/ 2>/dev/null || true
+        
+        # Create .nojekyll file for GitHub Pages
+        touch build/.nojekyll
+        
+        # Create index.html if it doesn't exist
+        if [ ! -f build/index.html ]; then
+          cp web/index.html build/
+        fi
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+      
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./build
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
